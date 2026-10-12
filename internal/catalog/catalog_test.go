@@ -38,7 +38,7 @@ func TestLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Stats{Records: 6, Duplicates: 1, BadRecords: 1, InitFailed: 1, Objects: 3, Primaries: 1}
+	want := Stats{Records: 6, Duplicates: 1, BadRecords: 1, InitFailed: 1, SubOrbital: 0, Objects: 3, Primaries: 1}
 	if st != want {
 		t.Errorf("stats = %+v, want %+v", st, want)
 	}
@@ -55,5 +55,28 @@ func TestLoad(t *testing.T) {
 	// ISS in 2008: roughly 350 km perigee, 360 km apogee.
 	if p, ap := objs[2].PerigeeKm-6378, objs[2].ApogeeKm-6378; p < 330 || ap > 380 || p > ap {
 		t.Errorf("ISS perigee/apogee altitude = %.0f / %.0f km", p, ap)
+	}
+}
+
+func TestAttachedGroups(t *testing.T) {
+	dir := t.TempDir()
+	// 25544 and 49044 share an element set (ISS and a module); 100 doesn't.
+	f := write(t, dir, "iss.csv", header+
+		"ISS (ZARYA),1998-067A,2026-10-11T00:00:00,15.5,.0005,51.6,10,20,30,0,U,25544,999,1,.0001,0,0\n"+
+		"ISS (NAUKA),2021-066A,2026-10-11T00:00:00,15.5,.0005,51.6,10,20,30,0,U,49044,999,1,.0001,0,0\n"+
+		"OTHER,2020-001A,2026-10-11T00:00:00,15.5,.0005,51.6,10,20,31,0,U,100,999,1,.0001,0,0\n")
+	objs, st, err := Load([]string{f}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Attached != 2 {
+		t.Errorf("Attached = %d, want 2", st.Attached)
+	}
+	byID := map[int]*Object{}
+	for _, o := range objs {
+		byID[o.ID] = o
+	}
+	if g := byID[25544].Group; g == 0 || byID[49044].Group != g || byID[100].Group != 0 {
+		t.Errorf("groups: ISS %d, Nauka %d, other %d", g, byID[49044].Group, byID[100].Group)
 	}
 }

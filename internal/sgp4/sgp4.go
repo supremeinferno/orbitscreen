@@ -25,6 +25,10 @@ import (
 	"github.com/supremeinferno/orbitscreen/internal/tle"
 )
 
+// EarthRadiusKm is the WGS-72 equatorial radius SGP4 uses; it also defines
+// "decayed" (error 6: orbit radius below one Earth radius).
+const EarthRadiusKm = 6378.135
+
 // WGS-72 earth constants. SGP4 was fitted with these, so TLEs are only
 // consistent with WGS-72 even though WGS-84 is "more accurate".
 const (

@@ -26,6 +26,13 @@ type Object struct {
 	// Perigee and apogee radius (km from Earth's centre) at epoch, used
 	// for coarse filtering.
 	PerigeeKm, ApogeeKm float64
+
+	// Group is non-zero for objects physically attached to each other:
+	// ISS modules, docked spacecraft, a servicing vehicle docked to its
+	// client. They share one identical element set, so they'd otherwise
+	// show up as permanent 0 km "conjunctions". Screeners skip pairs in the
+	// same group.
+	Group int
 }
 
 // Stats summarises what Load did.
@@ -34,6 +41,8 @@ type Stats struct {
 	Duplicates int // records dropped because a newer one for the same object exists
 	BadRecords int // records that failed to parse
 	InitFailed int // objects SGP4 rejected at epoch (usually decayed)
+	Attached   int // objects sharing an identical element set with another (see Object.Group)
+	SubOrbital int // objects whose perigee is below Earth's surface
 	Objects    int // objects returned
 	Primaries  int
 }
@@ -43,8 +52,9 @@ type Stats struct {
 // the format is detected from the content.
 //
 // Objects that appear in any file listed in primary are marked Primary.
-// Unparseable records and objects SGP4 can't evaluate at epoch are counted
-// in Stats and skipped rather than failing the whole load.
+// Unparseable records, objects SGP4 can't evaluate at epoch and objects
+// with a perigee below the surface are counted in Stats and skipped rather
+// than failing the whole load.
 func Load(files []string, primary []string) ([]*Object, Stats, error) {
 	var st Stats
 	isPrimary := map[string]bool{}
@@ -92,14 +102,55 @@ func Load(files []string, primary []string) ([]*Object, Stats, error) {
 		}
 		o.Sat = sat
 		o.PerigeeKm, o.ApogeeKm = sat.PerigeeApogee()
+		// An orbit that dips below the surface is re-entering within the
+		// hour, and SGP4 positions along it are meaningless (they violate
+		// the bounds the screener relies on). None are in the live catalog;
+		// Vallado's test set has two.
+		if o.PerigeeKm < sgp4.EarthRadiusKm {
+			st.SubOrbital++
+			continue
+		}
 		out = append(out, o)
 		if o.Primary {
 			st.Primaries++
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	st.Attached = groupAttached(out)
 	st.Objects = len(out)
 	return out, st, nil
+}
+
+// groupAttached gives objects with identical orbital elements a shared,
+// non-zero Group and returns how many objects got one.
+func groupAttached(objs []*Object) int {
+	type key struct {
+		epoch                          int64
+		n, e, i, raan, argp, ma, bstar float64
+	}
+	byKey := map[key][]*Object{}
+	for _, o := range objs {
+		el := o.Elems
+		k := key{el.Epoch.UnixNano(), el.MeanMotion, el.Eccentricity, el.Inclination,
+			el.RAAN, el.ArgPerigee, el.MeanAnomaly, el.BStar}
+		byKey[k] = append(byKey[k], o)
+	}
+	attached, group := 0, 0
+	for _, o := range objs { // in ID order, so group numbers are stable
+		el := o.Elems
+		k := key{el.Epoch.UnixNano(), el.MeanMotion, el.Eccentricity, el.Inclination,
+			el.RAAN, el.ArgPerigee, el.MeanAnomaly, el.BStar}
+		g := byKey[k]
+		if len(g) < 2 || o.Group != 0 {
+			continue
+		}
+		group++
+		for _, m := range g {
+			m.Group = group
+		}
+		attached += len(g)
+	}
+	return attached
 }
 
 func contains(xs []string, x string) bool {

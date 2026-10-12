@@ -12,6 +12,10 @@ Terms used in the code and docs, in plain words. Variable names from Vallado's c
 
 **Alpha-5.** The scheme for catalog numbers above 99,999 that still fit in five TLE columns: the first digit becomes a letter (A = 10 … Z = 33, skipping I and O). `A0001` = 100001.
 
+**Attached objects.** Separately catalogued objects that are physically joined, like ISS modules, docked spacecraft, or a servicing vehicle docked to its client. They share one element set, so the screener skips pairs within a group (`Object.Group`).
+
+**Chord bound.** The screener's main filter: over one sampling interval, two objects' relative path stays within a·Δt²/8 of the straight line (chord) between its sampled endpoints. See [chapter 5](05-screening.md#step-2-the-bounds).
+
 **Close approach / conjunction.** Two objects passing within some threshold distance of each other (SOCRATES uses 5 km). Not the same as a collision.
 
 **Deep space / SDP4.** The branch of SGP4 for orbits with periods of 225 minutes or more, which adds lunar and solar gravity and resonance effects (`deep` in the code, `method == 'd'` in Vallado's).
@@ -42,17 +46,27 @@ Terms used in the code and docs, in plain words. Variable names from Vallado's c
 
 **Molniya orbit.** A highly eccentric (e ≈ 0.7), 63.4°-inclined, 12-hour orbit used for high-latitude coverage. It is a classic stress test for SGP4's 12-hour resonance code.
 
+**OMM.** Orbit Mean-Elements Message, the CCSDS standard format for the same mean elements a TLE carries, with named fields (XML, KVN, JSON or CSV). Objects with 6-digit catalog numbers are only published as OMM. See [chapter 4](04-catalog.md#tle-vs-omm-why-we-fetch-csv).
+
+**Primary / secondary.** In SOCRATES-style screening, *primaries* are active payloads (which can manoeuvre, so a warning is useful) and *secondaries* are everything else. Only pairs involving at least one primary are screened (`-primary-only`).
+
 **Propagation.** Computing where an object will be (or was) at some time, starting from its elements.
 
 **RAAN** (`nodeo`, Ω). Right Ascension of the Ascending Node: the direction in space where the orbit crosses the equator going north. Together with inclination, it fixes the orbit plane.
 
 **Resonance** (`irez`). When an orbit's period is a simple fraction of Earth's rotation (12 h or 24 h), the satellite repeatedly passes over the same irregularities in Earth's gravity field, and their effect builds up. SGP4 integrates these effects numerically in 720-minute steps.
 
+**Refinement.** Finding the exact time of closest approach and miss distance for a candidate pair, here by golden-section search on the true SGP4 distance.
+
 **Secular vs periodic.** *Secular* changes accumulate steadily, like RAAN drifting a few degrees per day. *Periodic* changes oscillate and average out. SGP4 models both.
 
 **SGP4.** Simplified General Perturbations 4, the analytical orbit model that TLEs are fitted with. See [chapter 2](02-sgp4.md).
 
 **SOCRATES.** Satellite Orbital Conjunction Reports Assessing Threatening Encounters in Space: CelesTrak's public close-approach screening service, and the reference this project validates against.
+
+**Space-Track.** [space-track.org](https://www.space-track.org/), the US Space Force's public distribution site for orbit data. It is the only source of the *full* public catalog, and needs a free account.
+
+**TCA.** Time of Closest Approach: the moment two objects are nearest each other during an encounter. The distance at that moment is the *miss distance*.
 
 **TEME.** True Equator, Mean Equinox: the Earth-centred inertial frame SGP4 outputs. All objects share it, so distances between them can be computed directly.
 
