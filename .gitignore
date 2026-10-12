@@ -13,3 +13,6 @@
 __pycache__/
 
 .DS_Store
+
+# Downloaded orbit data (cmd/fetch)
+/data/

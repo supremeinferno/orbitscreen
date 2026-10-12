@@ -291,6 +291,14 @@ func gstime(jdut1 float64) float64 {
 	return temp
 }
 
+// PerigeeApogee returns the perigee and apogee radii (km from Earth's
+// centre) of the mean orbit at epoch. The osculating orbit differs from
+// this by tens of km, and drag lowers it over time, so callers using these
+// for filtering need a margin.
+func (s *Satellite) PerigeeApogee() (perigee, apogee float64) {
+	return (s.altp + 1) * radiusEarthKm, (s.alta + 1) * radiusEarthKm
+}
+
 // MinutesSinceEpoch converts an absolute time to SGP4's time argument.
 func (s *Satellite) MinutesSinceEpoch(t time.Time) float64 {
 	return t.Sub(s.Epoch).Minutes()
