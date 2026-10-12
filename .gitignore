@@ -1,0 +1,15 @@
+# Build output
+/crosscheck
+*.test
+*.prof
+
+# Downloaded catalogs and generated data (CelesTrak asks you not to re-download often; keep copies locally)
+*.tle
+!internal/sgp4/testdata/*.TLE
+*.csv
+
+# Python venv for cmd/crosscheck/crosscheck.py
+.venv/
+__pycache__/
+
+.DS_Store
