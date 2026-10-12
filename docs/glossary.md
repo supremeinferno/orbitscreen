@@ -24,7 +24,17 @@ Terms used in the code and docs, in plain words. Variable names from Vallado's c
 
 **Epoch.** The moment a TLE describes. Predictions are best near the epoch and degrade with distance from it, in both directions.
 
+**ECEF.** Earth-Centred, Earth-Fixed: a frame that rotates with the Earth, so a point on the ground has constant coordinates. TEME rotated by GMST gives ECEF (ignoring polar motion).
+
+**Footprint.** The area of the Earth from which an object is above the horizon: a circle of angular radius arccos(R / (R + h)) around its ground point.
+
+**Geodetic coordinates.** Latitude, longitude and height measured relative to the WGS-84 ellipsoid, as on maps and GPS. Geodetic latitude is the angle of the local vertical, which doesn't point exactly at the Earth's centre.
+
 **GEO (geostationary orbit).** A circular, equatorial orbit at ~35,786 km altitude with a period of one sidereal day, so the satellite appears fixed in the sky.
+
+**GMST.** Greenwich Mean Sidereal Time: the angle the Earth has rotated relative to the stars, used to turn TEME positions into Earth-fixed ones.
+
+**Ground track.** The path traced on the Earth's surface by the point directly below an object.
 
 **Inclination** (`inclo`, i). The tilt of the orbit plane relative to the equator. 0° = equatorial, 90° = polar, above 90° = retrograde.
 
@@ -68,8 +78,14 @@ Terms used in the code and docs, in plain words. Variable names from Vallado's c
 
 **TCA.** Time of Closest Approach: the moment two objects are nearest each other during an encounter. The distance at that moment is the *miss distance*.
 
+**Terminator.** The line between day and night on the Earth's surface, where the Sun is on the horizon.
+
 **TEME.** True Equator, Mean Equinox: the Earth-centred inertial frame SGP4 outputs. All objects share it, so distances between them can be computed directly.
 
 **TLE.** Two-Line Element set: the text format the orbit data comes in. See [chapter 1](01-tle-format.md).
+
+**UT1 vs UTC.** UT1 is time measured by the Earth's actual rotation; UTC is atomic time kept within 0.9 s of it by leap seconds. Using UTC for Earth rotation (as this project does) is off by |UT1−UTC| × 465 m/s at the equator, about 42 m on 12 October 2026.
+
+**WGS-84.** The current World Geodetic System Earth model (the GPS one), used here to convert positions to latitude, longitude and altitude.
 
 **WGS-72.** The 1972 World Geodetic System Earth model. SGP4 uses its constants (Earth radius 6378.135 km, μ = 398600.8 km³/s²) because TLEs were fitted with them.

@@ -282,6 +282,15 @@ func (s *Satellite) init(epoch float64) {
 	}
 }
 
+// GMST returns Greenwich mean sidereal time (radians, in [0, 2π)) at t:
+// the angle Earth has rotated, which is exactly the rotation from SGP4's
+// TEME frame to the Earth-fixed frame. UTC is used in place of UT1; the two
+// differ by under a second, i.e. under ~0.5 km at the equator.
+func GMST(t time.Time) float64 {
+	jd := 2440587.5 + float64(t.UnixNano())/86400e9
+	return gstime(jd)
+}
+
 // gstime returns Greenwich mean sidereal time (radians) for a UT1 Julian date
 // (IAU-82 model).
 func gstime(jdut1 float64) float64 {

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>orbitscreen live</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="map" aria-label="World map showing every tracked object in orbit"></canvas>
+
+<header class="bar">
+  <div class="brand">orbitscreen <span>live</span></div>
+  <div class="clock">
+    <time id="simtime">loading…</time>
+    <div class="speeds" role="group" aria-label="Time speed">
+      <button data-speed="1" class="on">1×</button>
+      <button data-speed="10">10×</button>
+      <button data-speed="60">60×</button>
+      <button data-speed="600">600×</button>
+      <button id="now" title="Jump back to the current time">Now</button>
+    </div>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="Search name or NORAD ID…" autocomplete="off" aria-label="Search satellites">
+    <ul id="suggest" hidden></ul>
+  </div>
+</header>
+
+<aside class="legend" aria-label="Filters">
+  <div id="kinds"></div>
+  <div class="orbits" id="orbits"></div>
+  <p class="meta" id="meta"></p>
+</aside>
+
+<aside class="panel" id="panel" hidden aria-live="polite"></aside>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

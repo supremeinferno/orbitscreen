@@ -1,0 +1,83 @@
+:root {
+  --bg: #050b14;
+  --surface: rgba(10, 20, 34, 0.86);
+  --border: rgba(140, 170, 200, 0.18);
+  --text: #e3ecf5;
+  --muted: #8ea3b8;
+  --accent: #4cc9f0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+
+#map { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+
+.bar {
+  position: fixed; top: 12px; left: 12px; right: 12px;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); backdrop-filter: blur(8px);
+}
+.brand { font-weight: 650; letter-spacing: 0.02em; }
+.brand span { color: var(--accent); font-weight: 500; }
+.clock { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+#simtime { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 21ch; }
+.speeds { display: flex; gap: 4px; }
+button {
+  font: inherit; font-size: 13px; color: var(--text); background: transparent;
+  border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px; cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.on { background: var(--accent); color: #04121c; border-color: var(--accent); }
+
+.search { position: relative; margin-left: auto; min-width: 220px; flex: 0 1 300px; }
+#q {
+  width: 100%; font: inherit; font-size: 14px; color: var(--text); background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px;
+}
+#q:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+#suggest {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; max-height: 320px; overflow: auto;
+}
+#suggest li { padding: 5px 8px; border-radius: 5px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+#suggest li:hover, #suggest li.active { background: rgba(76, 201, 240, 0.15); }
+#suggest small { color: var(--muted); }
+
+.legend {
+  position: fixed; left: 12px; bottom: 12px; padding: 10px 12px; min-width: 210px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 13px;
+}
+.legend label { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: pointer; }
+.legend .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.legend .count { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.orbits { display: flex; gap: 4px; margin-top: 8px; }
+.orbits button { font-size: 12px; padding: 2px 7px; }
+.meta { margin: 8px 0 0; color: var(--muted); font-size: 12px; max-width: 26ch; }
+
+.panel {
+  position: fixed; right: 12px; bottom: 12px; width: 300px; max-width: calc(100vw - 24px);
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-size: 13px;
+}
+.panel h2 { margin: 0 0 2px; font-size: 16px; }
+.panel .sub { color: var(--muted); margin: 0 0 10px; }
+.panel dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+.panel dt { color: var(--muted); }
+.panel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.panel .close { position: absolute; top: 8px; right: 8px; padding: 0 7px; }
+.panel .note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+
+.tip {
+  position: fixed; pointer-events: none; padding: 3px 7px; border-radius: 5px; font-size: 12px;
+  background: rgba(0,0,0,0.75); border: 1px solid var(--border); white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .bar { top: 8px; left: 8px; right: 8px; gap: 8px; }
+  .search { margin-left: 0; flex: 1 1 100%; }
+  .legend { left: 8px; bottom: 8px; min-width: 0; }
+  .legend .meta { display: none; }
+  .panel { left: 8px; right: 8px; bottom: 8px; width: auto; }
+}

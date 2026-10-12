@@ -4,6 +4,10 @@
 
 `orbitscreen` is a conjunction screener written in Go from scratch, with no orbital-mechanics dependencies. It reads the public satellite catalog, predicts where every object will be over the next 7 days, and finds every pair that comes within a few kilometres of each other. Then it checks its answers against [CelesTrak SOCRATES](https://celestrak.org/SOCRATES/), the public reference service for this job.
 
+It also includes a **live tracker** that draws every object in the catalog moving on a world map:
+
+![Live tracker: ~20,000 objects on a world map, ISS selected with its ground track](docs/img/tracker.jpg)
+
 > **This is a screening tool, not a collision predictor.** Public orbit data (TLEs) is only accurate to about a kilometre at its epoch, and the error grows by kilometres per day. A "close approach" here means "worth a closer look with better data", not "will collide". See [Limitations](#limitations).
 
 ## Status
@@ -15,7 +19,7 @@
 | 3. Optimised screener: altitude filter, spatial grid / k-d tree, goroutine worker pool, pprof profiling | ⏳ Next |
 | 4. Validate against SOCRATES: what % of their close approaches do we find? | ☐ |
 | 5. Final numbers: full catalog over 7 days in ___ min, ___% SOCRATES match, ___× speedup | ☐ |
-| ➕ Live tracker: every satellite moving on a world map in the browser | ⏳ In progress |
+| ➕ Live tracker: every satellite moving on a world map in the browser | ✅ Done |
 
 ## Results so far
 
@@ -48,7 +52,8 @@ Start with the docs. They are written to be read in order, and they assume no or
 3. [Verification](docs/03-verification.md). How we proved the propagator is right, including the bug the tests caught.
 4. [The catalog](docs/04-catalog.md). Where the data comes from, why we fetch OMM instead of TLEs, and the cleanup it needs (duplicates, docked objects).
 5. [Screening](docs/05-screening.md). How close approaches are found without missing any, why SGP4's velocity can't be trusted for this, and the brute-force baseline.
-6. [Glossary](docs/glossary.md). Every term of art used in the code and docs.
+6. [The live tracker](docs/06-live-tracker.md). Turning SGP4 positions into latitude and longitude, and drawing 20,000 objects on a map every second.
+7. [Glossary](docs/glossary.md). Every term of art used in the code and docs.
 
 More chapters arrive with each milestone: optimisations, SOCRATES validation.
 
@@ -60,8 +65,10 @@ internal/sgp4/       SGP4/SDP4 propagator, a port of Vallado's 2020 reference co
   testdata/          Vallado's verification TLEs and expected output
 internal/catalog/    Loads data files: dedup, primaries, docked-object groups
 internal/screen/     Close-approach screening: bounds, refinement, brute force
+internal/earth/      TEME → Earth-fixed → latitude/longitude/altitude
 cmd/fetch/           Downloads orbit data from CelesTrak into data/
 cmd/screen/          The screener CLI
+cmd/track/           Live tracker: web server + embedded map page
 cmd/crosscheck/      Dumps positions for a whole catalog + Python script to compare with python-sgp4
 docs/                The explanations above
 ```
@@ -78,6 +85,7 @@ go run ./cmd/fetch                  # download today's data into data/ (reused f
 go run ./cmd/screen -max-steps 60   # time the first 10 minutes, project the full 7 days
 go run ./cmd/screen -days 0.0417 -out conj.csv   # a real 1-hour screen, results to CSV
 go run ./cmd/screen -primary-only   # SOCRATES-style: active payloads vs everything
+go run ./cmd/track                  # live map at http://localhost:8080
 ```
 
 To repeat the full-catalog cross-check against python-sgp4:
