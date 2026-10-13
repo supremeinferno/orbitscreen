@@ -162,3 +162,7 @@ Each of these was measured during the project, not just assumed:
 - Vallado, Crawford, Hujsak, Kelso, *Revisiting Spacetrack Report #3*, AIAA 2006-6753. This is the reference SGP4 implementation and the verification set used here.
 - Hoots & Roehrich, *Spacetrack Report No. 3: Models for Propagation of NORAD Element Sets*, 1980. The original SGP4 definition.
 - [CelesTrak](https://celestrak.org/), for the TLE data and SOCRATES.
+
+## License
+
+[MIT](LICENSE). The SGP4 propagator is a port of David Vallado's reference code, and `internal/sgp4/testdata` holds his verification files, both as published with *Revisiting Spacetrack Report #3*. Orbit data comes from CelesTrak and Space-Track under their own terms and isn't part of this repository.
