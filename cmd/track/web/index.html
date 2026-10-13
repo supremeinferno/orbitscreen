@@ -21,6 +21,10 @@
       <button id="now" title="Jump back to the current time">Now</button>
     </div>
   </div>
+  <div class="links">
+    <button id="approachesBtn" hidden aria-expanded="false" aria-controls="approaches">Close approaches</button>
+    <button id="aboutBtn" aria-haspopup="dialog">About</button>
+  </div>
   <div class="search">
     <input id="q" type="search" placeholder="Search name or NORAD ID…" autocomplete="off" aria-label="Search satellites">
     <ul id="suggest" hidden></ul>
@@ -34,6 +38,24 @@
 </aside>
 
 <aside class="panel" id="panel" hidden aria-live="polite"></aside>
+<aside class="list" id="approaches" hidden aria-label="Closest approaches in the next 24 hours"></aside>
+<div class="loading" id="loading" role="status">Loading the catalog…</div>
+
+<dialog id="about" aria-labelledby="about-title">
+  <h2 id="about-title">orbitscreen</h2>
+  <p>Every object in the public satellite catalog, moving in real time. Positions come from <strong>SGP4, written from scratch in Go</strong>, and on this site the same Go code runs in your browser, compiled to WebAssembly.</p>
+  <p>The project's main job is <strong>screening</strong>: finding every pair of objects that will pass within 5 km of each other.</p>
+  <ul>
+    <li><strong>Whole catalog, 7 days, 5 minutes</strong> on a laptop: all 32,591 objects in orbit, ~136× faster than checking every pair.</li>
+    <li><strong>100% of CelesTrak SOCRATES's close approaches</strong> found on the same data (205,716 of 205,716), with miss distances within 0.5 m.</li>
+  </ul>
+  <p class="note">Try <em>Close approaches</em> for the next 24 hours, click any dot, or search by name. These are screening results from public orbit data, accurate to about a kilometre: worth a closer look, not collision predictions.</p>
+  <div class="actions">
+    <a href="https://github.com/supremeinferno/orbitscreen">Code &amp; write-up on GitHub</a>
+    <a href="https://github.com/supremeinferno/orbitscreen/blob/main/docs/05-screening.md">How screening works</a>
+    <form method="dialog"><button class="primary" autofocus>Explore the map</button></form>
+  </div>
+</dialog>
 <div class="tip" id="tip" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>

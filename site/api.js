@@ -39,5 +39,10 @@ const api = (() => {
       const s = orbitscreen.object(id, t);
       return s === null ? null : JSON.parse(s);
     },
+    // The next day's closest approaches, screened when the site was built
+    // (site/closest).
+    async closest() {
+      return JSON.parse(await text('closest.json'));
+    },
   };
 })();

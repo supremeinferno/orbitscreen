@@ -15,4 +15,9 @@ const api = {
     const res = await fetch(`/api/object?id=${id}&t=${t}`);
     return res.ok ? res.json() : null;
   },
+  // The public site lists the next day's closest approaches (site/closest);
+  // the local server doesn't.
+  async closest() {
+    return null;
+  },
 };

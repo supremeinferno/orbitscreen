@@ -1,6 +1,7 @@
 // orbitscreen live tracker: draws every catalogued object on a world map.
-// The Go server (cmd/track) does all the orbit maths; this file only
-// draws. See docs/06-live-tracker.md.
+// The orbit maths is Go (internal/live), reached through api.js: over HTTP
+// from cmd/track, or compiled to WebAssembly on the public site. This file
+// only draws. See docs/06-live-tracker.md.
 'use strict';
 
 const KINDS = {
@@ -24,6 +25,9 @@ let selected = null;     // catalog index
 let info = null;         // api.object() result for the selected object
 let dirty = true;
 let lastFetchMs = 0;
+let indexOf = new Map(); // NORAD id -> catalog index
+let approaches = null;   // api.closest() result, if the page has one
+let pair = null;         // {b: catalog index, c: approach} while one is shown
 
 const showKind = new Set(Object.keys(KINDS));
 const showOrbit = new Set(ORBITS);
@@ -197,13 +201,27 @@ function draw() {
       ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.stroke();
       ctx.font = '600 12px system-ui, sans-serif';
       ctx.fillText(catalog[selected].name, x + 13, y + 4);
+      if (pair && !Number.isNaN(pos[3 * pair.b])) {
+        const [bx, by] = project(pos[3 * pair.b], pos[3 * pair.b + 1]);
+        ctx.strokeStyle = '#ef476f'; ctx.fillStyle = '#ef476f'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(bx, by); ctx.stroke();
+        ctx.beginPath(); ctx.arc(bx, by, 6, 0, 2 * Math.PI); ctx.stroke();
+        ctx.fillText(catalog[pair.b].name, bx + 13, by + 18);
+      }
     }
   }
   ctx.restore();
 }
 
+const clock = (ms) => new Date(ms).toISOString().slice(11, 19);
+
 function frame() {
   $('simtime').textContent = new Date(simNow()).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  const cd = pair && $('countdown');
+  if (cd) {
+    const s = Math.round((Date.parse(pair.c.tca) - simNow()) / 1000);
+    cd.textContent = s > 0 ? `closest in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : s === 0 ? 'closest now' : `${fmt(-s)} s ago`;
+  }
   if (dirty) { draw(); dirty = false; }
   requestAnimationFrame(frame);
 }
@@ -213,6 +231,7 @@ async function fetchPositions() {
   try {
     const t0 = performance.now();
     pos = await api.positions(Math.round(simNow()));
+    $('loading').hidden = true;
     lastFetchMs = performance.now() - t0;
     dirty = true;
     updateMeta();
@@ -233,7 +252,8 @@ async function fetchInfo() {
 }
 setInterval(fetchInfo, 3000);
 
-function select(i) {
+function select(i, keepPair = false) {
+  if (!keepPair && pair) { pair = null; renderApproaches(); }
   selected = i; info = null;
   // Keep the selection in the URL (#25544) so a view can be linked to.
   history.replaceState(null, '', i === null ? location.pathname : '#' + catalog[i].id);
@@ -256,6 +276,9 @@ function renderPanel() {
     <button class="close" aria-label="Close">×</button>
     <h2>${esc(c.name)}</h2>
     <p class="sub">NORAD ${c.id}${info.intlDes ? ' · ' + esc(info.intlDes) : ''} · ${KINDS[c.kind].label.replace(/s$/, '').toLowerCase()} · ${c.orbit}</p>
+    ${pair ? `<div class="pair">Close approach with <strong>${esc(catalog[pair.b].name)}</strong><br>
+      ${fmt(pair.c.km * 1000)} m at ${clock(Date.parse(pair.c.tca))} UTC · ${fmt(pair.c.kms, 1)} km/s relative ·
+      <span class="countdown" id="countdown"></span></div>` : ''}
     ${info.error ? `<p class="note">${esc(info.error)}</p>` : `
     <dl>
       <dt>Position</dt><dd>${ns(info.lat)}, ${ew(info.lon)}</dd>
@@ -306,13 +329,15 @@ canvas.addEventListener('mousemove', (e) => {
 });
 canvas.addEventListener('mouseleave', () => { $('tip').hidden = true; });
 
+const speedButtons = (v) => document.querySelectorAll('[data-speed]').forEach((x) => x.classList.toggle('on', Number(x.dataset.speed) === v));
 document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
   setClock(simNow(), Number(b.dataset.speed));
-  document.querySelectorAll('[data-speed]').forEach((x) => x.classList.toggle('on', x === b));
+  speedButtons(speed);
 }));
 $('now').addEventListener('click', () => {
   setClock(Date.now(), 1);
-  document.querySelectorAll('[data-speed]').forEach((x) => x.classList.toggle('on', x.dataset.speed === '1'));
+  speedButtons(1);
+  if (pair) { pair = null; renderApproaches(); }
   fetchInfo();
 });
 
@@ -378,14 +403,65 @@ function syncFilters() {
   updateMeta(); dirty = true;
 }
 
+// ---- close approaches (public site only) ----
+function renderApproaches() {
+  if (!approaches) return;
+  const ago = (Date.now() - Date.parse(approaches.generated)) / 3600000;
+  $('approaches').innerHTML = `
+    <h2>Closest approaches, next ${fmt(approaches.hours)} h</h2>
+    <p class="sub">${fmt(approaches.total)} pairs within 5 km involving an active satellite, screened ${ago < 1 ? 'under an hour' : fmt(ago) + ' h'} ago by this project's screener. Click one to watch it.</p>
+    <ol>${approaches.approaches.map((c, k) => `<li><button data-k="${k}" class="${pair && pair.c === c ? 'on' : ''}">
+      <span class="names">${esc(c.a.name)} × ${esc(c.b.name)}</span><span class="km">${fmt(c.km * 1000)} m</span>
+      <span class="when">${new Date(c.tca).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${fmt(c.kms, 1)} km/s</span></button></li>`).join('')}</ol>`;
+}
+$('approaches').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  const c = approaches.approaches[Number(b.dataset.k)];
+  const ia = indexOf.get(c.a.id), ib = indexOf.get(c.b.id);
+  if (ia === undefined || ib === undefined) return;
+  for (const i of [ia, ib]) { showKind.add(catalog[i].kind); showOrbit.add(catalog[i].orbit); }
+  syncFilters();
+  // A minute before closest approach, at normal speed, to watch it happen.
+  setClock(Date.parse(c.tca) - 60000, 1);
+  speedButtons(1);
+  pair = { b: ib, c };
+  select(ia, true);
+  renderApproaches();
+  if (matchMedia('(max-width: 640px)').matches) toggleApproaches(false);
+});
+function toggleApproaches(show) {
+  $('approaches').hidden = !show;
+  $('approachesBtn').setAttribute('aria-expanded', String(show));
+  $('approachesBtn').classList.toggle('on', show);
+}
+$('approachesBtn').addEventListener('click', () => toggleApproaches($('approaches').hidden));
+
+$('aboutBtn').addEventListener('click', () => $('about').showModal());
+try {
+  if (!localStorage.getItem('orbitscreen.about')) {
+    localStorage.setItem('orbitscreen.about', '1');
+    $('about').showModal();
+  }
+} catch (e) { /* storage blocked: skip the first-visit card */ }
+
 // ---- start ----
 async function start() {
   resize();
   window.addEventListener('resize', resize);
   buildFilters();
-  catalog = await api.catalog();
+  try {
+    catalog = await api.catalog();
+  } catch (e) {
+    $('loading').textContent = `Couldn't load the catalog (${e.message}).`;
+    throw e;
+  }
   byKind = Object.fromEntries(Object.keys(KINDS).map((k) => [k, []]));
-  catalog.forEach((c, i) => byKind[c.kind].push(i));
+  catalog.forEach((c, i) => { byKind[c.kind].push(i); indexOf.set(c.id, i); });
+  approaches = await api.closest().catch(() => null);
+  if (approaches && approaches.approaches.length) {
+    $('approachesBtn').hidden = false;
+    renderApproaches();
+  }
   requestAnimationFrame(frame);
   fetchPositions();
   // Select the object named in the URL (#41866), or the ISS.
