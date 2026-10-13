@@ -5,15 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>orbitscreen live</title>
 <link rel="stylesheet" href="style.css">
+<script type="importmap">
+{"imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
 </head>
 <body>
 <canvas id="map" aria-label="World map showing every tracked object in orbit"></canvas>
+<canvas id="globe" hidden aria-label="3D globe showing every tracked object in orbit at its altitude"></canvas>
 
 <header class="bar">
   <a class="brand" href="https://github.com/supremeinferno/orbitscreen" title="Source code and write-up on GitHub">orbitscreen <span>live</span></a>
   <div class="clock">
     <time id="simtime">loading…</time>
     <div class="speeds" role="group" aria-label="Time speed">
+      <button id="pause" aria-label="Pause" title="Pause (Space)">❚❚</button>
       <button data-speed="1" class="on">1×</button>
       <button data-speed="10">10×</button>
       <button data-speed="60">60×</button>
@@ -21,12 +29,16 @@
       <button id="now" title="Jump back to the current time">Now</button>
     </div>
   </div>
+  <div class="views" role="group" aria-label="View">
+    <button data-view="3d">Globe</button>
+    <button data-view="2d">Map</button>
+  </div>
   <div class="links">
     <button id="approachesBtn" hidden aria-expanded="false" aria-controls="approaches">Close approaches</button>
     <button id="aboutBtn" aria-haspopup="dialog">About</button>
   </div>
   <div class="search">
-    <input id="q" type="search" placeholder="Search name or NORAD ID…" autocomplete="off" aria-label="Search satellites">
+    <input id="q" type="search" placeholder="Search name or NORAD ID…  ( / )" autocomplete="off" aria-label="Search satellites">
     <ul id="suggest" hidden></ul>
   </div>
 </header>
@@ -49,7 +61,7 @@
     <li><strong>Whole catalog, 7 days, 5 minutes</strong> on a laptop: all 32,591 objects in orbit, ~136× faster than checking every pair.</li>
     <li><strong>100% of CelesTrak SOCRATES's close approaches</strong> found on the same data (205,716 of 205,716), with miss distances within 0.5 m.</li>
   </ul>
-  <p class="note">Try <em>Close approaches</em> for the next 24 hours, click any dot, or search by name. These are screening results from public orbit data, accurate to about a kilometre: worth a closer look, not collision predictions.</p>
+  <p class="note">Try <em>Close approaches</em> for the next 24 hours, click any dot, or search by name. Drag to turn the globe, scroll to zoom out to the geostationary ring. Keys: <kbd>/</kbd> search, <kbd>Space</kbd> pause, <kbd>Esc</kbd> clear. These are screening results from public orbit data, accurate to about a kilometre: worth a closer look, not collision predictions.</p>
   <div class="actions">
     <a href="https://github.com/supremeinferno/orbitscreen">Code &amp; write-up on GitHub</a>
     <a href="https://github.com/supremeinferno/orbitscreen/blob/main/docs/05-screening.md">How screening works</a>

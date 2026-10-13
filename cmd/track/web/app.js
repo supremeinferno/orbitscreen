@@ -28,6 +28,9 @@ let lastFetchMs = 0;
 let indexOf = new Map(); // NORAD id -> catalog index
 let approaches = null;   // api.closest() result, if the page has one
 let pair = null;         // {b: catalog index, c: approach} while one is shown
+let view = '2d';         // '3d' (globe.js) or '2d' (this file's map)
+let globe = null;        // the 3D view, once loaded
+let lastPosT = null;     // the time pos was computed for
 
 const showKind = new Set(Object.keys(KINDS));
 const showOrbit = new Set(ORBITS);
@@ -60,9 +63,24 @@ function drawBase() {
   const b = base.getContext('2d');
   b.setTransform(dpr, 0, 0, dpr, 0, 0);
   b.fillStyle = '#050b14'; b.fillRect(0, 0, W, H);
+  paintMap(b, mapX, mapY, mapW, mapH, 1);
+}
+
+// The 3D globe's texture: the same map, filling a 4096×2048 canvas.
+function mapTexture() {
+  const c = document.createElement('canvas');
+  c.width = 4096; c.height = 2048;
+  paintMap(c.getContext('2d'), 0, 0, c.width, c.height, 2);
+  return c;
+}
+
+// Ocean, graticule and land in the rectangle x0, y0, w, h (equirectangular).
+function paintMap(b, x0, y0, w, h, line) {
+  const project = (lat, lon) => [x0 + (lon + 180) / 360 * w, y0 + (90 - lat) / 180 * h];
+  const [mapX, mapY, mapW, mapH] = [x0, y0, w, h];
   b.fillStyle = '#0a1a2b'; b.fillRect(mapX, mapY, mapW, mapH);
   // graticule every 30°
-  b.strokeStyle = 'rgba(255,255,255,0.06)'; b.lineWidth = 1; b.beginPath();
+  b.strokeStyle = 'rgba(255,255,255,0.06)'; b.lineWidth = line; b.beginPath();
   for (let lon = -180; lon <= 180; lon += 30) { const [x] = project(0, lon); b.moveTo(x, mapY); b.lineTo(x, mapY + mapH); }
   for (let lat = -90; lat <= 90; lat += 30) { const [, y] = project(lat, 0); b.moveTo(mapX, y); b.lineTo(mapX + mapW, y); }
   b.stroke();
@@ -75,7 +93,7 @@ function drawBase() {
     // other. Clipping to the map hides whatever lands outside.
     b.save();
     b.beginPath(); b.rect(mapX, mapY, mapW, mapH); b.clip();
-    b.fillStyle = '#1f3d54'; b.strokeStyle = '#2f5a76'; b.lineWidth = 0.6; b.beginPath();
+    b.fillStyle = '#1f3d54'; b.strokeStyle = '#2f5a76'; b.lineWidth = 0.6 * line; b.beginPath();
     for (const f of land.features) {
       const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
       for (const poly of polys) for (const ring of poly) {
@@ -222,15 +240,27 @@ function frame() {
     const s = Math.round((Date.parse(pair.c.tca) - simNow()) / 1000);
     cd.textContent = s > 0 ? `closest in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : s === 0 ? 'closest now' : `${fmt(-s)} s ago`;
   }
-  if (dirty) { draw(); dirty = false; }
+  if (view === '3d') {
+    if (dirty) { syncGlobe(); dirty = false; }
+    const sun = subsolar(simNow());
+    globe.setSun(sun.lat, sun.lon);
+    globe.render(performance.now());
+  } else if (dirty) { draw(); dirty = false; }
   requestAnimationFrame(frame);
 }
 
 // ---- data ----
-async function fetchPositions() {
+async function updatePositions() {
   try {
     const t0 = performance.now();
-    pos = await api.positions(Math.round(simNow()));
+    const t = Math.round(simNow());
+    if (!(speed === 0 && t === lastPosT)) {
+      pos = await api.positions(t);
+      lastPosT = t;
+    }
+    if (!$('loading').hidden && view === '3d' && selected !== null && !Number.isNaN(pos[3 * selected])) {
+      globe.flyTo(pos[3 * selected], pos[3 * selected + 1], pos[3 * selected + 2]); // the first view
+    }
     $('loading').hidden = true;
     lastFetchMs = performance.now() - t0;
     dirty = true;
@@ -238,7 +268,10 @@ async function fetchPositions() {
   } catch (e) {
     console.error(e);
   }
-  setTimeout(fetchPositions, speed > 1 ? 250 : 1000);
+}
+async function positionsLoop() {
+  await updatePositions();
+  setTimeout(positionsLoop, speed > 1 ? 250 : 1000);
 }
 
 async function fetchInfo() {
@@ -247,6 +280,7 @@ async function fetchInfo() {
   const next = await api.object(id, Math.round(simNow()));
   if (!next || selected === null || catalog[selected].id !== id) return;
   info = next;
+  globe?.setTrack(info.track, info.trackNow);
   renderPanel();
   dirty = true;
 }
@@ -257,7 +291,9 @@ function select(i, keepPair = false) {
   selected = i; info = null;
   // Keep the selection in the URL (#25544) so a view can be linked to.
   history.replaceState(null, '', i === null ? location.pathname : '#' + catalog[i].id);
+  syncSelection();
   if (i === null) { $('panel').hidden = true; dirty = true; return; }
+  if (view === '3d' && pos && !Number.isNaN(pos[3 * i])) globe.flyTo(pos[3 * i], pos[3 * i + 1], pos[3 * i + 2]);
   $('panel').hidden = false;
   $('panel').innerHTML = `<p class="sub">Loading ${esc(catalog[i].name)}…</p>`;
   fetchInfo();
@@ -290,7 +326,7 @@ function renderPanel() {
       <dt>Elements age</dt><dd>${ageH >= 0 ? fmt(ageH, 1) + ' h' : 'in the future'}</dd>
     </dl>`}
     ${c.attached ? '<p class="note">Docked to or part of another catalogued object (same orbit data).</p>' : ''}
-    <p class="note">Ground track: faint = last third of an orbit, bright = next orbit. Circle = area that can see it above the horizon.</p>`;
+    <p class="note">${view === '3d' ? 'Orbit' : 'Ground track'}: faint = last third of an orbit, bright = next orbit.${view === '3d' ? '' : ' Circle = area that can see it above the horizon.'}</p>`;
   $('panel').querySelector('.close').onclick = () => select(null);
 }
 
@@ -319,17 +355,40 @@ function nearest(px, py, maxDist) {
   return best;
 }
 
-canvas.addEventListener('click', (e) => { select(nearest(e.clientX, e.clientY, 10)); dirty = true; });
-canvas.addEventListener('mousemove', (e) => {
-  const i = nearest(e.clientX, e.clientY, 8), tip = $('tip');
+function showTip(e, i) {
+  const tip = $('tip');
   if (i === null) { tip.hidden = true; return; }
   tip.hidden = false;
   tip.textContent = `${catalog[i].name} · ${fmt(pos[3 * i + 2])} km`;
   tip.style.left = e.clientX + 12 + 'px'; tip.style.top = e.clientY + 12 + 'px';
-});
+}
+canvas.addEventListener('click', (e) => { select(nearest(e.clientX, e.clientY, 10)); dirty = true; });
+canvas.addEventListener('mousemove', (e) => showTip(e, nearest(e.clientX, e.clientY, 8)));
 canvas.addEventListener('mouseleave', () => { $('tip').hidden = true; });
 
-const speedButtons = (v) => document.querySelectorAll('[data-speed]').forEach((x) => x.classList.toggle('on', Number(x.dataset.speed) === v));
+// The globe: a click is a press and release without dragging.
+let down = null;
+$('globe').addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; $('tip').hidden = true; });
+$('globe').addEventListener('pointerup', (e) => {
+  if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) select(globe.pick(e.clientX, e.clientY, 12));
+  down = null;
+});
+$('globe').addEventListener('mousemove', (e) => { if (!e.buttons) showTip(e, globe.pick(e.clientX, e.clientY, 8)); });
+$('globe').addEventListener('mouseleave', () => { $('tip').hidden = true; });
+
+function speedButtons(v) {
+  document.querySelectorAll('[data-speed]').forEach((x) => x.classList.toggle('on', Number(x.dataset.speed) === v));
+  $('pause').classList.toggle('on', v === 0);
+  $('pause').textContent = v === 0 ? '▶' : '❚❚';
+  $('pause').setAttribute('aria-label', v === 0 ? 'Resume' : 'Pause');
+}
+let resumeSpeed = 1;
+function togglePause() {
+  if (speed === 0) setClock(simNow(), resumeSpeed);
+  else { resumeSpeed = speed; setClock(simNow(), 0); }
+  speedButtons(speed);
+}
+$('pause').addEventListener('click', togglePause);
 document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
   setClock(simNow(), Number(b.dataset.speed));
   speedButtons(speed);
@@ -337,7 +396,7 @@ document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('cli
 $('now').addEventListener('click', () => {
   setClock(Date.now(), 1);
   speedButtons(1);
-  if (pair) { pair = null; renderApproaches(); }
+  if (pair) { pair = null; renderApproaches(); syncSelection(); }
   fetchInfo();
 });
 
@@ -347,7 +406,10 @@ $('q').addEventListener('input', () => {
   const q = $('q').value.trim().toUpperCase();
   const list = $('suggest');
   matches = [];
-  if (q) {
+  if (!q) {
+    // Nothing typed yet: a few well-known objects.
+    matches = POPULAR.map((id) => indexOf.get(id)).filter((i) => i !== undefined);
+  } else {
     for (let i = 0; i < catalog.length && matches.length < 50; i++) {
       const c = catalog[i];
       if (String(c.id) === q || c.name.toUpperCase().includes(q)) matches.push(i);
@@ -359,6 +421,8 @@ $('q').addEventListener('input', () => {
   list.innerHTML = matches.map((i) => `<li data-i="${i}">${esc(catalog[i].name)} <small>${catalog[i].id}</small></li>`).join('');
   list.hidden = matches.length === 0;
 });
+$('q').addEventListener('focus', () => $('q').dispatchEvent(new Event('input')));
+$('q').addEventListener('blur', () => setTimeout(() => { $('suggest').hidden = true; }, 150));
 $('suggest').addEventListener('click', (e) => {
   const li = e.target.closest('li'); if (!li) return;
   pick(Number(li.dataset.i));
@@ -414,7 +478,7 @@ function renderApproaches() {
       <span class="names">${esc(c.a.name)} × ${esc(c.b.name)}</span><span class="km">${fmt(c.km * 1000)} m</span>
       <span class="when">${new Date(c.tca).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${fmt(c.kms, 1)} km/s</span></button></li>`).join('')}</ol>`;
 }
-$('approaches').addEventListener('click', (e) => {
+$('approaches').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-k]'); if (!b) return;
   const c = approaches.approaches[Number(b.dataset.k)];
   const ia = indexOf.get(c.a.id), ib = indexOf.get(c.b.id);
@@ -425,6 +489,7 @@ $('approaches').addEventListener('click', (e) => {
   setClock(Date.parse(c.tca) - 60000, 1);
   speedButtons(1);
   pair = { b: ib, c };
+  await updatePositions(); // so the camera flies to where the objects are then
   select(ia, true);
   renderApproaches();
   if (matchMedia('(max-width: 640px)').matches) toggleApproaches(false);
@@ -444,6 +509,55 @@ try {
   }
 } catch (e) { /* storage blocked: skip the first-visit card */ }
 
+// ---- 3D view ----
+const POPULAR = [25544, 48274, 20580, 41866]; // ISS, Tiangong, Hubble, GOES 16
+
+// Kind colours as linear RGB, which is what WebGL vertex colours expect.
+const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const KIND_RGB = Object.fromEntries(Object.entries(KINDS).map(([k, v]) =>
+  [k, [1, 3, 5].map((o) => lin(parseInt(v.color.slice(o, o + 2), 16) / 255))]));
+
+function syncGlobe() {
+  if (globe && pos) globe.setPoints(pos, catalog.length, (i) => (visible(i) ? KIND_RGB[catalog[i].kind] : null));
+}
+function syncSelection() {
+  globe?.setSelection(selected, pair ? pair.b : null,
+    [selected === null ? '' : catalog[selected].name, pair ? catalog[pair.b].name : '']);
+}
+
+async function setView(v) {
+  if (v === '3d' && !globe) {
+    try {
+      const { createGlobe } = await import('./globe.js');
+      $('globe').hidden = false;
+      globe = createGlobe($('globe'));
+      globe.setTexture(mapTexture());
+      syncSelection();
+      if (info) globe.setTrack(info.track, info.trackNow);
+    } catch (e) {
+      console.warn('3D view unavailable', e);
+      v = '2d';
+    }
+  }
+  view = v;
+  $('globe').hidden = v !== '3d';
+  $('map').hidden = v === '3d';
+  globe?.setActive(v === '3d');
+  document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
+  try { localStorage.setItem('orbitscreen.view', v); } catch (e) { /* not remembered */ }
+  dirty = true;
+  renderPanel();
+}
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+
+// ---- keyboard ----
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input') || $('about').open) return;
+  if (e.key === '/') { e.preventDefault(); $('q').focus(); }
+  else if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); togglePause(); }
+  else if (e.key === 'Escape') { if (!$('approaches').hidden) toggleApproaches(false); else select(null); }
+});
+
 // ---- start ----
 async function start() {
   resize();
@@ -461,9 +575,13 @@ async function start() {
   if (approaches && approaches.approaches.length) {
     $('approachesBtn').hidden = false;
     renderApproaches();
+    if (matchMedia('(min-width: 900px)').matches) toggleApproaches(true);
   }
+  let saved = null;
+  try { saved = localStorage.getItem('orbitscreen.view'); } catch (e) { /* default */ }
+  setView(saved || '3d'); // the globe loads three.js; the map works meanwhile
   requestAnimationFrame(frame);
-  fetchPositions();
+  positionsLoop();
   // Select the object named in the URL (#41866), or the ISS.
   const want = Number(location.hash.slice(1)) || 25544;
   const i0 = catalog.findIndex((c) => c.id === want);
@@ -472,6 +590,7 @@ async function start() {
     const world = await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-110m.json')).json();
     land = topojson.feature(world, world.objects.land);
     base = null; dirty = true;
+    globe?.setTexture(mapTexture());
   } catch (e) {
     console.warn('coastlines unavailable (offline?)', e);
   }

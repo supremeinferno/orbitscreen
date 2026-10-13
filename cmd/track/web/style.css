@@ -12,7 +12,21 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
 
-#map { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+#map, #globe { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+#globe { cursor: grab; }
+#globe:active { cursor: grabbing; }
+canvas[hidden] { display: none; }
+.label {
+  position: fixed; left: 0; top: 0; pointer-events: none; font: 600 12px system-ui, sans-serif;
+  text-shadow: 0 0 4px #000, 0 0 2px #000; white-space: nowrap;
+}
+.label[hidden] { display: none; }
+.views { display: flex; }
+.views button { border-radius: 0; }
+.views button:first-child { border-radius: 6px 0 0 6px; }
+.views button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+#pause { min-width: 32px; }
+kbd { font: 12px ui-monospace, monospace; padding: 0 4px; border: 1px solid var(--border); border-radius: 4px; }
 
 .bar {
   position: fixed; top: 12px; left: 12px; right: 12px;
