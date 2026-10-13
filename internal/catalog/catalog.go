@@ -3,6 +3,7 @@
 package catalog
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -170,15 +171,16 @@ func readFile(path string) ([]*tle.TLE, int, error) {
 		return nil, 0, err
 	}
 	defer f.Close()
-	head := make([]byte, 64)
-	n, _ := io.ReadFull(f, head)
+	// OMM CSV has a header row naming its columns. CelesTrak's starts with
+	// OBJECT_NAME; Space-Track's starts with "CCSDS_OMM_VERS" (quoted) and
+	// is long, so look for NORAD_CAT_ID anywhere in the first line.
+	first, _ := bufio.NewReaderSize(f, 1<<16).ReadString('\n')
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
 		return nil, 0, err
 	}
 
 	var recs []*tle.TLE
-	if strings.Contains(strings.ToUpper(string(head[:n])), "NORAD_CAT_ID") ||
-		strings.HasPrefix(string(head[:n]), "OBJECT_NAME,") || strings.HasPrefix(string(head[:n]), "CCSDS_OMM_VERS,") {
+	if strings.Contains(strings.ToUpper(first), "NORAD_CAT_ID") {
 		recs, err = tle.ReadOMMCSV(f)
 	} else {
 		recs, err = tle.ReadAll(f)

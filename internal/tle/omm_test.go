@@ -63,3 +63,25 @@ func TestReadOMMCSVMissingColumn(t *testing.T) {
 		t.Errorf("want missing-column error, got %v", err)
 	}
 }
+
+func TestReadOMMCSVSpaceTrack(t *testing.T) {
+	// Space-Track's CSV: every field quoted, extra columns, a different
+	// order, and CREATION_DATE.
+	in := `"CCSDS_OMM_VERS","CREATION_DATE","OBJECT_NAME","OBJECT_ID","EPOCH","MEAN_MOTION","ECCENTRICITY","INCLINATION","RA_OF_ASC_NODE","ARG_OF_PERICENTER","MEAN_ANOMALY","NORAD_CAT_ID","BSTAR","MEAN_MOTION_DOT","MEAN_MOTION_DDOT","TLE_LINE1"
+"3.0","2026-10-12T06:01:02","ISS (ZARYA)","1998-067A","2026-10-12T04:30:00.123456","15.49","0.0006770","51.6314","120.1","90.2","270.0","25544","0.00025","0.0001","0","1 25544U ..."
+`
+	got, err := ReadOMMCSV(strings.NewReader(in))
+	if err != nil || len(got) != 1 {
+		t.Fatalf("got %d records, err %v", len(got), err)
+	}
+	g := got[0]
+	if g.CatalogNum != 25544 || g.Name != "ISS (ZARYA)" || g.MeanMotion != 15.49 {
+		t.Errorf("record = %+v", g)
+	}
+	if want := time.Date(2026, 10, 12, 6, 1, 2, 0, time.UTC); !g.Created.Equal(want) {
+		t.Errorf("Created = %v, want %v", g.Created, want)
+	}
+	if want := time.Date(2026, 10, 12, 4, 30, 0, 123456000, time.UTC); !g.Epoch.Equal(want) {
+		t.Errorf("Epoch = %v, want %v", g.Epoch, want)
+	}
+}

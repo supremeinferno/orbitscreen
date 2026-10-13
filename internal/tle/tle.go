@@ -41,6 +41,10 @@ type TLE struct {
 	MeanAnomaly  float64 // cols 44-51  degrees
 	MeanMotion   float64 // cols 53-63  revolutions per day
 	RevNum       int     // cols 64-68  revolution number at epoch
+
+	// Created is when the element set was published (OMM CREATION_DATE).
+	// TLE text doesn't carry it, so it's zero for TLE input.
+	Created time.Time
 }
 
 // ErrChecksum is returned when a line's last digit doesn't match Checksum(line).

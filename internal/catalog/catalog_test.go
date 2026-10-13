@@ -80,3 +80,15 @@ func TestAttachedGroups(t *testing.T) {
 		t.Errorf("groups: ISS %d, Nauka %d, other %d", g, byID[49044].Group, byID[100].Group)
 	}
 }
+
+func TestLoadSpaceTrackCSV(t *testing.T) {
+	// The NORAD_CAT_ID column is far past the start of Space-Track's long,
+	// quoted header; the file must still be recognised as OMM.
+	f := write(t, t.TempDir(), "spacetrack.csv",
+		`"CCSDS_OMM_VERS","COMMENT","CREATION_DATE","ORIGINATOR","OBJECT_NAME","OBJECT_ID","CENTER_NAME","REF_FRAME","TIME_SYSTEM","MEAN_ELEMENT_THEORY","EPOCH","MEAN_MOTION","ECCENTRICITY","INCLINATION","RA_OF_ASC_NODE","ARG_OF_PERICENTER","MEAN_ANOMALY","EPHEMERIS_TYPE","CLASSIFICATION_TYPE","NORAD_CAT_ID","BSTAR","MEAN_MOTION_DOT","MEAN_MOTION_DDOT"`+"\n"+
+			`"3.0","GENERATED VIA SPACE-TRACK.ORG API","2026-10-12T06:01:02","18 SPCS","ISS (ZARYA)","1998-067A","EARTH","TEME","UTC","SGP4","2026-10-12T04:30:00.123456","15.49","0.0006770","51.6314","120.1","90.2","270.0","0","U","25544","0.00025","0.0001","0"`+"\n")
+	objs, st, err := Load([]string{f}, nil)
+	if err != nil || len(objs) != 1 || st.BadRecords != 0 {
+		t.Fatalf("objs %d, stats %+v, err %v", len(objs), st, err)
+	}
+}

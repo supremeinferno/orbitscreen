@@ -106,13 +106,20 @@ func ommRecord(rec []string, idx map[string]int) (*TLE, error) {
 		return nil, err
 	}
 	t.Epoch = ep
+	if c := get("CREATION_DATE"); c != "" {
+		if t.Created, err = parseOMMEpoch(c); err != nil {
+			return nil, fmt.Errorf("CREATION_DATE: %w", err)
+		}
+	}
 	return t, nil
 }
 
-// parseOMMEpoch parses an OMM epoch such as "2026-10-11T22:55:09.150528".
-// OMM epochs are UTC and carry no zone suffix.
+// parseOMMEpoch parses an OMM time such as "2026-10-11T22:55:09.150528"
+// (Space-Track sometimes uses a space instead of the T). OMM times are UTC
+// and carry no zone suffix.
 func parseOMMEpoch(s string) (time.Time, error) {
-	t, err := time.Parse("2006-01-02T15:04:05.999999999", strings.TrimSuffix(s, "Z"))
+	s = strings.Replace(strings.TrimSuffix(s, "Z"), " ", "T", 1)
+	t, err := time.Parse("2006-01-02T15:04:05.999999999", s)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("EPOCH %q: %w", s, err)
 	}
