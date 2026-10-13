@@ -108,7 +108,7 @@ type Info struct {
 	Lon            float64      `json:"lon"`
 	AltKm          float64      `json:"altKm"`
 	SpeedKmS       float64      `json:"speedKmS"`
-	Track          [][2]float64 `json:"track"`        // [lat, lon], from half an orbit ago to one orbit ahead
+	Track          [][3]float64 `json:"track"`        // [lat, lon, alt km], from half an orbit ago to one orbit ahead
 	TrackNow       int          `json:"trackNow"`     // index in Track of the current time
 	FootprintDeg   float64      `json:"footprintDeg"` // angular radius of the area that can see the object
 	Error          string       `json:"error,omitempty"`
@@ -157,7 +157,7 @@ func (t *Tracker) Object(id int, tm time.Time) (Info, bool) {
 		if math.Abs(m) < step/2 {
 			info.TrackNow = len(info.Track)
 		}
-		info.Track = append(info.Track, [2]float64{g.Lat, g.Lon})
+		info.Track = append(info.Track, [3]float64{g.Lat, g.Lon, g.Alt})
 	}
 	return info, true
 }
