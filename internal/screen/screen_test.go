@@ -299,3 +299,36 @@ func TestMethodsAgree(t *testing.T) {
 		}
 	}
 }
+
+// A slow co-orbital pair that never separates beyond the threshold still
+// passes through one distance minimum per orbit, and SOCRATES reports each
+// one. (An earlier merge chained them into a single conjunction; the
+// SOCRATES comparison caught it.)
+func TestSlowPairEveryMinimum(t *testing.T) {
+	a := object(t, 1, 53, 100, 0)
+	// Same orbit plane and period, slightly more eccentric and trailing by
+	// ~0.5 km: B circles A once per orbit at 1-3 km.
+	el := *a.Elems
+	el.CatalogNum, el.Eccentricity, el.MeanAnomaly = 2, 0.0003, -0.004
+	sat, err := sgp4.New(&el)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := &catalog.Object{ID: 2, Elems: &el, Sat: sat}
+	cfg := Config{Start: epoch, Duration: 6 * time.Hour, Step: 10 * time.Second, Threshold: 5}
+	got, _ := BruteForce([]*catalog.Object{a, b}, cfg)
+	want := minima(a, b, cfg.Start, cfg.Duration, cfg.Threshold)
+	if len(want) < 3 {
+		t.Fatalf("test setup: %d minima", len(want))
+	}
+	if len(got) != len(want) {
+		t.Fatalf("found %d conjunctions, ground truth has %d minima", len(got), len(want))
+	}
+	for k := range got {
+		// The distance is very flat at a slow minimum, so the exact TCA is
+		// ill-conditioned; the miss distance is what must agree.
+		if got[k].TCA.Sub(want[k].TCA).Abs() > 2*time.Second || math.Abs(got[k].MissKm-want[k].MissKm) > 0.001 {
+			t.Errorf("#%d: %v %.4f km, ground truth %v %.4f km", k, got[k].TCA, got[k].MissKm, want[k].TCA, want[k].MissKm)
+		}
+	}
+}

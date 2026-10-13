@@ -49,6 +49,11 @@ type Conjunction struct {
 	TCA      time.Time       // time of closest approach
 	MissKm   float64         // distance at TCA
 	RelSpeed float64         // relative speed at TCA, km/s
+
+	// edge is set while screening when the closest point found in an
+	// interval is one of its ends: the distance was still falling there,
+	// so the real minimum is in the neighbouring interval.
+	edge bool
 }
 
 // Stats counts the work done, for comparing screeners.
@@ -271,15 +276,21 @@ func (r *run) refine(i, j, k int) (c Conjunction, ok bool) {
 		TCA:      r.cfg.Start.Add(time.Duration((t0 + bestTau) * float64(time.Second))),
 		MissKm:   best,
 		RelSpeed: math.Sqrt(dv[0]*dv[0] + dv[1]*dv[1] + dv[2]*dv[2]),
+		edge:     bestTau == 0 || bestTau == r.dt,
 	}, true
 }
 
-// merge reduces detections to one per encounter. Detections farther than
-// the threshold are dropped; then detections of the same pair that follow
-// each other within two steps (one encounter seen from neighbouring
-// intervals, or a slow co-orbital pair that stays close for a while)
-// collapse into the closest of them. Finally, encounters whose closest
-// point is the very start or end of the window are dropped: the pair was
+// merge turns detections into conjunctions: one per local minimum of the
+// distance closer than the threshold, which is what SOCRATES (STK/CAT)
+// reports. A slow pair can stay within the threshold for hours and pass
+// through several minima; each is its own conjunction.
+//
+// The same minimum can be detected twice: from the interval that contains
+// it, and from a neighbour whose closest point is the shared end (an edge
+// detection, where the distance was still falling). Edge detections are
+// dropped when a detection of the same pair within one step is at least as
+// close; detections of the same pair less than 1 ms apart are one. Finally,
+// minima at the very start or end of the window are dropped: the pair was
 // closer before (or will be after) the window, so that's not a real TCA.
 func merge(found []Conjunction, step time.Duration, threshold float64, start, end time.Time) []Conjunction {
 	near := found[:0]
@@ -299,25 +310,34 @@ func merge(found []Conjunction, step time.Duration, threshold float64, start, en
 		}
 		return a.TCA.Before(b.TCA)
 	})
+	samePair := func(i, j int) bool {
+		return j >= 0 && j < len(found) && found[i].A == found[j].A && found[i].B == found[j].B
+	}
 	var out []Conjunction
-	var lastSeen time.Time // TCA of the latest detection in the current group
-	for _, c := range found {
-		if n := len(out); n > 0 {
-			best := &out[n-1]
-			if best.A == c.A && best.B == c.B && c.TCA.Sub(lastSeen) <= 2*step {
-				if c.MissKm < best.MissKm {
-					*best = c
+	for i, c := range found {
+		if c.edge {
+			superseded := false
+			for _, j := range []int{i - 1, i + 1} {
+				if samePair(i, j) && found[j].TCA.Sub(c.TCA).Abs() <= step+time.Millisecond && found[j].MissKm <= c.MissKm && (found[j].MissKm < c.MissKm || j < i || !found[j].edge) {
+					superseded = true
 				}
-				lastSeen = c.TCA
+			}
+			if superseded {
 				continue
 			}
 		}
+		if n := len(out); n > 0 && out[n-1].A == c.A && out[n-1].B == c.B && c.TCA.Sub(out[n-1].TCA) < time.Millisecond {
+			if c.MissKm < out[n-1].MissKm {
+				out[n-1] = c
+			}
+			continue
+		}
 		out = append(out, c)
-		lastSeen = c.TCA
 	}
 	kept := out[:0]
 	for _, c := range out {
 		if c.TCA.Sub(start).Abs() > time.Millisecond && c.TCA.Sub(end).Abs() > time.Millisecond {
+			c.edge = false
 			kept = append(kept, c)
 		}
 	}
