@@ -95,7 +95,7 @@ Two things are then dropped:
 
 ## The brute-force baseline
 
-[`BruteForce`](../internal/screen/brute.go) tests **every pair at every step** on a single goroutine. It is the "before" number that milestone 3 has to beat, and the reference answer the faster screeners must reproduce exactly.
+[`BruteForce`](../internal/screen/engine.go) tests **every pair at every step**. Run on one core (`-workers 1`), it is the "before" number that milestone 3 has to beat, and the reference answer the faster screeners must reproduce exactly.
 
 The pair loop is as lean as a naive loop gets. Positions are stored as separate x/y/z arrays (struct of arrays) so the inner loop streams through memory, and the coarse bound is a squared-distance compare with no square root.
 

@@ -117,6 +117,8 @@ go run ./cmd/screen -method brute -workers 1 -max-steps 60   # baseline: time 10
 go run ./cmd/screen -days 0.0417 -out conj.csv   # a real 1-hour screen, results to CSV
 go run ./cmd/screen -primary-only   # SOCRATES-style: active payloads vs everything
 go run ./cmd/track                  # live map at http://localhost:8080
+
+site/build.sh                       # the public site into _site/: WebAssembly engine, data, next day's approaches
 ```
 
 To repeat the full-catalog cross-check against python-sgp4:
