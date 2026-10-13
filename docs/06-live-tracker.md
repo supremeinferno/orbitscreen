@@ -4,6 +4,8 @@
 
 The screener's output is a list of numbers. The tracker shows what the catalog actually looks like: every object, moving in real time on a world map. It reuses the same SGP4 propagator and catalog loader. The one new piece of maths turns SGP4's positions into latitude and longitude.
 
+**Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**, or run it locally:
+
 ```sh
 go run ./cmd/fetch     # if data/ is missing or old
 go run ./cmd/track     # then open http://localhost:8080
@@ -63,6 +65,23 @@ All the orbit maths runs in Go. The browser only draws. The page itself (HTML, C
 **Positions are sent as binary.** Each object is three little-endian `float32`s (latitude, longitude, altitude), in the same order as the catalog: 245,868 bytes for 20,489 objects. The browser wraps the response in a `Float32Array` with no parsing at all. The same data as JSON would be about three times larger and need parsing every second. `float32` has ~7 significant digits, about 1 m of latitude, which is plenty for a map.
 
 **Speed.** Propagating and converting the whole catalog for one request takes about **10 ms** on one core, measured in the browser as the round-trip time and shown in the legend. That's why the server can afford to recompute everything every second instead of streaming deltas or interpolating.
+
+## The public site: the same Go code in the browser
+
+GitHub Pages can only host static files, so it can't run `cmd/track`'s server. Instead of rewriting the maths in JavaScript, the site runs the **same Go code compiled to WebAssembly**. The tracker's computations live in [`internal/live`](../internal/live/live.go), which both programs use:
+
+```
+cmd/track (local)                         public site
+─────────────────                         ───────────
+browser ── HTTP ──▶ Go server             browser ── calls ──▶ Go compiled to WebAssembly
+                    internal/live                              internal/live (cmd/trackwasm)
+```
+
+The page talks to one small file, `api.js`, with three functions: `catalog()`, `positions(t)` and `object(id, t)`. Locally, [its version](../cmd/track/web/api.js) makes the HTTP requests above. The [site's version](../site/api.js) downloads the WebAssembly engine (~1 MB compressed) and the element sets (~3 MB of CSV), then calls the engine directly. Nothing else in the page changes.
+
+**Speed.** One `positions` call for 21,069 objects takes about **30 ms** as WebAssembly (measured in Node.js on the M4), against ~10 ms natively. Fast enough to recompute everything every second, or 4 times a second when time-warping, without a Web Worker.
+
+**Fresh data.** A [GitHub Action](../.github/workflows/site.yml) fetches the element sets from CelesTrak every 6 hours, builds the site with [`site/build.sh`](../site/build.sh) and deploys it. Data is cached in 2-hour slots, so pushes never fetch from CelesTrak more often than it asks.
 
 ## The map
 

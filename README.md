@@ -4,7 +4,7 @@
 
 `orbitscreen` is a conjunction screener written in Go from scratch, with no orbital-mechanics dependencies. It reads the public satellite catalog, predicts where every object will be over the next 7 days, and finds every pair that comes within a few kilometres of each other. Then it checks its answers against [CelesTrak SOCRATES](https://celestrak.org/SOCRATES/), the public reference service for this job.
 
-It also includes a **live tracker** that draws every object in the catalog moving on a world map:
+It also includes a **live tracker** that draws every object in the catalog moving on a world map. **Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**. It runs the project's own Go SGP4 in your browser, compiled to WebAssembly.
 
 ![Live tracker: ~20,000 objects on a world map, ISS selected with its ground track](docs/img/tracker.jpg)
 
@@ -92,10 +92,13 @@ internal/catalog/    Loads data files: dedup, primaries, docked-object groups
 internal/screen/     Close-approach screening: bounds, refinement, brute force, grid
 internal/socrates/   SOCRATES CSV reader, as-of catalog rebuild, matching
 internal/earth/      TEME → Earth-fixed → latitude/longitude/altitude
+internal/live/       What the live tracker shows: all positions, one object's details and ground track
 cmd/fetch/           Downloads orbit data from CelesTrak into data/
 cmd/screen/          The screener CLI
 cmd/track/           Live tracker: web server + embedded map page
 cmd/socrates/        Screens as a SOCRATES run did and reports recall
+cmd/trackwasm/       The tracker's engine compiled to WebAssembly, for the public site
+site/                Builds the public site (GitHub Pages, refreshed every 6 hours)
 cmd/crosscheck/      Dumps positions for a whole catalog + Python script to compare with python-sgp4
 docs/                The explanations above
 ```
