@@ -84,7 +84,7 @@ func main() {
 			seen[k] = true
 			if len(res.Approaches) < *top {
 				res.Approaches = append(res.Approaches, approach{c.TCA.Truncate(time.Millisecond),
-					math.Round(c.MissKm*1000) / 1000, math.Round(c.RelSpeed*100) / 100,
+					math.Round(c.MissKm*1000) / 1000, math.Round(c.RelSpeed*1000) / 1000,
 					object{c.A.ID, c.A.Name}, object{c.B.ID, c.B.Name}})
 			}
 		}
