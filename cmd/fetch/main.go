@@ -56,7 +56,17 @@ func main() {
 			time.Sleep(time.Second) // be polite
 		}
 		url := "https://celestrak.org/NORAD/elements/gp.php?" + s.query + "&FORMAT=csv"
+		// CelesTrak occasionally answers with a 500; a retry a little
+		// later usually works.
 		n, err := download(client, url, path)
+		for _, wait := range []time.Duration{10 * time.Second, 30 * time.Second} {
+			if err == nil {
+				break
+			}
+			log.Printf("%s: %v; retrying in %v", s.file, err, wait)
+			time.Sleep(wait)
+			n, err = download(client, url, path)
+		}
 		if err != nil {
 			log.Fatalf("%s: %v", s.file, err)
 		}
