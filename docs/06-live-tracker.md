@@ -72,7 +72,7 @@ The tracker opens on a **3D globe** ([`globe.js`](../cmd/track/web/globe.js), dr
 
 The 21,000 objects are one `THREE.Points` object, refreshed every second from the same position buffer the map uses. Picking works on screen: each visible object is projected to the screen, objects behind the Earth (the line from the camera to them passes through the sphere) are skipped, and the nearest within 12 px wins. Selecting an object turns the camera to look down on it; its orbit is drawn at its altitude, from the ground-track points, which now carry altitude too.
 
-Also: a pause button and keyboard shortcuts (<kbd>/</kbd> search, <kbd>Space</kbd> pause, <kbd>Esc</kbd> clear), and a few well-known objects (ISS, Tiangong, Hubble) suggested in the empty search box.
+The controls are grouped so the globe stays in view: time on the top bar, close approaches and layer filters as tabs in one side panel that folds away, the selected object on the right, and a small status line at the bottom. Also: a pause button and keyboard shortcuts (<kbd>/</kbd> search, <kbd>Space</kbd> pause, <kbd>Esc</kbd> clear), and a few well-known objects (ISS, Tiangong, Hubble) suggested in the empty search box.
 
 ## The public site: the same Go code in the browser
 
