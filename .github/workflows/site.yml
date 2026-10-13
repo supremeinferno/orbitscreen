@@ -1,0 +1,50 @@
+# Builds the live tracker as a static site (site/build.sh) and publishes it
+# on GitHub Pages. It runs every 6 hours for fresh element sets, and on
+# pushes that change the tracker.
+name: site
+
+on:
+  push:
+    branches: [main]
+    paths: ['cmd/track/**', 'cmd/trackwasm/**', 'internal/**', 'site/**', '.github/workflows/site.yml']
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      # CelesTrak asks for the same data at most every couple of hours, so
+      # runs within one 2-hour slot reuse the files the first one fetched
+      # (cmd/fetch skips files younger than 2 hours).
+      - id: slot
+        run: echo "slot=$(( $(date +%s) / 7200 ))" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: data
+          key: celestrak-${{ steps.slot.outputs.slot }}
+      - run: go run ./cmd/fetch
+      - run: site/build.sh
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

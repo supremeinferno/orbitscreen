@@ -17,3 +17,6 @@ __pycache__/
 # Downloaded orbit data (cmd/fetch)
 /data/
 /runs/
+
+# Built site (site/build.sh)
+/_site/
