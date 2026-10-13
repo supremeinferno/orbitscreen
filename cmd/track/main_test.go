@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/supremeinferno/orbitscreen/internal/catalog"
+	"github.com/supremeinferno/orbitscreen/internal/live"
 )
 
 func testServer(t *testing.T) *httptest.Server {
@@ -52,7 +53,7 @@ var httpGet = http.Get
 func TestAPI(t *testing.T) {
 	srv := testServer(t)
 
-	var cat []objectMeta
+	var cat []live.Meta
 	if err := json.Unmarshal(get(t, srv.URL+"/api/catalog"), &cat); err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +87,7 @@ func TestAPI(t *testing.T) {
 		}
 	}
 
-	var info objectInfo
+	var info live.Info
 	if err := json.Unmarshal(get(t, srv.URL+"/api/object?id=25544&t=1791784800000"), &info); err != nil {
 		t.Fatal(err)
 	}
