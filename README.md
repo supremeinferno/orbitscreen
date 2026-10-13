@@ -6,7 +6,7 @@
 
 It also includes a **live tracker** that draws every object in the catalog moving on a world map. **Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**. It runs the project's own Go SGP4 in your browser, compiled to WebAssembly, and lists the closest approaches of the next 24 hours from the project's screener.
 
-![Live tracker: ~20,000 objects on a world map, ISS selected with its ground track](docs/img/tracker.jpg)
+![Live tracker: ~21,000 objects around a 3D Earth, the ISS selected with its orbit, and the next day's closest approaches](docs/img/tracker.jpg)
 
 > **This is a screening tool, not a collision predictor.** Public orbit data (TLEs) is only accurate to about a kilometre at its epoch, and the error grows by kilometres per day. A "close approach" here means "worth a closer look with better data", not "will collide". See [Limitations](#limitations).
 
