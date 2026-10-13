@@ -66,6 +66,14 @@ All the orbit maths runs in Go. The browser only draws. The page itself (HTML, C
 
 **Speed.** Propagating and converting the whole catalog for one request takes about **10 ms** on one core, measured in the browser as the round-trip time and shown in the legend. That's why the server can afford to recompute everything every second instead of streaming deltas or interpolating.
 
+## The 3D view
+
+The tracker opens on a **3D globe** ([`globe.js`](../cmd/track/web/globe.js), drawn with [three.js](https://threejs.org/)); the flat map is one click away. Every object sits at its real altitude, so the shells are visible: the dense LEO cloud, the navigation satellites around 20,000 km, and the geostationary ring when you zoom out. The scene is Earth-fixed, the same frame as the latitudes and longitudes the engine returns: the Earth stays still, the Sun's light moves (from the same solar position the map uses for its night shading), and the satellites move around it. The Earth's texture is the flat map's own drawing, painted onto a 4096×2048 canvas.
+
+The 21,000 objects are one `THREE.Points` object, refreshed every second from the same position buffer the map uses. Picking works on screen: each visible object is projected to the screen, objects behind the Earth (the line from the camera to them passes through the sphere) are skipped, and the nearest within 12 px wins. Selecting an object turns the camera to look down on it; its orbit is drawn at its altitude, from the ground-track points, which now carry altitude too.
+
+Also: a pause button and keyboard shortcuts (<kbd>/</kbd> search, <kbd>Space</kbd> pause, <kbd>Esc</kbd> clear), and a few well-known objects (ISS, Tiangong, Hubble) suggested in the empty search box.
+
 ## The public site: the same Go code in the browser
 
 GitHub Pages can only host static files, so it can't run `cmd/track`'s server. Instead of rewriting the maths in JavaScript, the site runs the **same Go code compiled to WebAssembly**. The tracker's computations live in [`internal/live`](../internal/live/live.go), which both programs use:
