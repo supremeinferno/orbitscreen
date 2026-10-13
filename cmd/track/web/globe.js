@@ -121,14 +121,17 @@ export function createGlobe(canvas) {
     m.geometry.attributes.position.needsUpdate = true;
   }
 
+  // Labels sit right of their objects. When the two are close on screen,
+  // the upper one's label moves up and the lower one's down, so they don't overlap.
   function placeLabels() {
-    const items = [[sel, '#fff'], [pairB, '#ff8fa8']];
-    items.forEach(([i, color], k) => {
-      const p = i === null ? null : screenOf(i);
+    const ps = [sel, pairB].map((i) => (i === null ? null : screenOf(i)));
+    const close = ps[0] && ps[1] && Math.abs(ps[0][1] - ps[1][1]) < 18 && Math.abs(ps[0][0] - ps[1][0]) < 160;
+    ps.forEach((p, k) => {
       labels[k].hidden = !p || !active;
       if (!p) return;
-      labels[k].style.color = color;
-      labels[k].style.transform = `translate(${p[0] + 12}px, ${p[1] - 8 + 16 * k}px)`;
+      const dy = !close ? -8 : p[1] <= ps[1 - k][1] ? -20 : 4;
+      labels[k].style.color = k ? '#ff8fa8' : '#fff';
+      labels[k].style.transform = `translate(${p[0] + 12}px, ${p[1] + dy}px)`;
     });
   }
 

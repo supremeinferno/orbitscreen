@@ -224,7 +224,7 @@ function draw() {
         ctx.strokeStyle = '#ef476f'; ctx.fillStyle = '#ef476f'; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(bx, by); ctx.stroke();
         ctx.beginPath(); ctx.arc(bx, by, 6, 0, 2 * Math.PI); ctx.stroke();
-        ctx.fillText(catalog[pair.b].name, bx + 13, by + 18);
+        ctx.fillText(catalog[pair.b].name, bx + 13, by < y ? by - 10 : by + 18); // clear of the other label
       }
     }
   }
@@ -300,6 +300,8 @@ function select(i, keepPair = false) {
 }
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Formation flyers pass each other at metres per second, not kilometres.
+const relSpeed = (kms) => (kms < 1 ? `${fmt(kms * 1000)} m/s` : `${fmt(kms, 1)} km/s`);
 const fmt = (x, d = 0) => Number(x).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 
 function renderPanel() {
@@ -309,11 +311,11 @@ function renderPanel() {
   const ns = (lat) => `${fmt(Math.abs(lat), 2)}° ${lat >= 0 ? 'N' : 'S'}`;
   const ew = (lon) => `${fmt(Math.abs(lon), 2)}° ${lon >= 0 ? 'E' : 'W'}`;
   $('panel').innerHTML = `
-    <button class="close" aria-label="Close">×</button>
+    <button class="btn icon close" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
     <h2>${esc(c.name)}</h2>
     <p class="sub">NORAD ${c.id}${info.intlDes ? ' · ' + esc(info.intlDes) : ''} · ${KINDS[c.kind].label.replace(/s$/, '').toLowerCase()} · ${c.orbit}</p>
     ${pair ? `<div class="pair">Close approach with <strong>${esc(catalog[pair.b].name)}</strong><br>
-      ${fmt(pair.c.km * 1000)} m at ${clock(Date.parse(pair.c.tca))} UTC · ${fmt(pair.c.kms, 1)} km/s relative ·
+      ${fmt(pair.c.km * 1000)} m at ${clock(Date.parse(pair.c.tca))} UTC, ${relSpeed(pair.c.kms)} relative
       <span class="countdown" id="countdown"></span></div>` : ''}
     ${info.error ? `<p class="note">${esc(info.error)}</p>` : `
     <dl>
@@ -325,8 +327,8 @@ function renderPanel() {
       <dt>Inclination</dt><dd>${fmt(info.inclination, 2)}°</dd>
       <dt>Elements age</dt><dd>${ageH >= 0 ? fmt(ageH, 1) + ' h' : 'in the future'}</dd>
     </dl>`}
-    ${c.attached ? '<p class="note">Docked to or part of another catalogued object (same orbit data).</p>' : ''}
-    <p class="note">${view === '3d' ? 'Orbit' : 'Ground track'}: faint = last third of an orbit, bright = next orbit.${view === '3d' ? '' : ' Circle = area that can see it above the horizon.'}</p>`;
+    ${c.attached ? '<p class="note">Docked to another catalogued object (same orbit data).</p>' : ''}
+    <p class="note">${view === '3d' ? 'Orbit' : 'Ground track'}: faint behind, bright ahead.${view === '3d' ? '' : ' Circle: where it is above the horizon.'}</p>`;
   $('panel').querySelector('.close').onclick = () => select(null);
 }
 
@@ -339,7 +341,7 @@ function updateMeta() {
     if (showKind.has(catalog[i].kind)) shown++;
   }
   for (const k of Object.keys(KINDS)) $('count-' + k).textContent = fmt(counts[k] || 0);
-  $('meta').textContent = `${fmt(shown)} of ${fmt(catalog.length)} objects shown · positions computed ${api.how} in ${fmt(lastFetchMs)} ms`;
+  $('meta').textContent = `${fmt(shown)} of ${fmt(catalog.length)} objects · positions computed ${api.how} in ${fmt(lastFetchMs)} ms`;
 }
 
 // ---- interaction ----
@@ -379,7 +381,9 @@ $('globe').addEventListener('mouseleave', () => { $('tip').hidden = true; });
 function speedButtons(v) {
   document.querySelectorAll('[data-speed]').forEach((x) => x.classList.toggle('on', Number(x.dataset.speed) === v));
   $('pause').classList.toggle('on', v === 0);
-  $('pause').textContent = v === 0 ? '▶' : '❚❚';
+  $('pause').innerHTML = v === 0
+    ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7.5-4.5z"/></svg>'
+    : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5v9M10.5 3.5v9"/></svg>';
   $('pause').setAttribute('aria-label', v === 0 ? 'Resume' : 'Pause');
 }
 let resumeSpeed = 1;
@@ -449,7 +453,7 @@ function buildFilters() {
   $('kinds').innerHTML = Object.entries(KINDS).map(([k, v]) => `
     <label><input type="checkbox" data-kind="${k}" checked>
       <span class="dot" style="background:${v.color}"></span>${v.label}<span class="count" id="count-${k}">–</span></label>`).join('');
-  $('orbits').innerHTML = ORBITS.map((o) => `<button data-orbit="${o}" class="on">${o}</button>`).join('');
+  $('orbits').innerHTML = ORBITS.map((o) => `<button class="btn on" data-orbit="${o}">${o}</button>`).join('');
   $('kinds').addEventListener('change', (e) => {
     const k = e.target.dataset.kind;
     e.target.checked ? showKind.add(k) : showKind.delete(k);
@@ -472,11 +476,10 @@ function renderApproaches() {
   if (!approaches) return;
   const ago = (Date.now() - Date.parse(approaches.generated)) / 3600000;
   $('approaches').innerHTML = `
-    <h2>Closest approaches, next ${fmt(approaches.hours)} h</h2>
-    <p class="sub">${fmt(approaches.total)} pairs within 5 km involving an active satellite, screened ${ago < 1 ? 'under an hour' : fmt(ago) + ' h'} ago by this project's screener. Click one to watch it.</p>
+    <p class="lede">The closest of ${fmt(approaches.total)} pairs passing within 5 km in the next ${fmt(approaches.hours)} h, involving an active satellite. Screened ${ago < 1 ? 'under an hour' : fmt(ago) + ' h'} ago by this project. Click one to watch it.</p>
     <ol>${approaches.approaches.map((c, k) => `<li><button data-k="${k}" class="${pair && pair.c === c ? 'on' : ''}">
       <span class="names">${esc(c.a.name)} × ${esc(c.b.name)}</span><span class="km">${fmt(c.km * 1000)} m</span>
-      <span class="when">${new Date(c.tca).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${fmt(c.kms, 1)} km/s</span></button></li>`).join('')}</ol>`;
+      <span class="when">${new Date(c.tca).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${relSpeed(c.kms)}</span></button></li>`).join('')}</ol>`;
 }
 $('approaches').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-k]'); if (!b) return;
@@ -492,14 +495,24 @@ $('approaches').addEventListener('click', async (e) => {
   await updatePositions(); // so the camera flies to where the objects are then
   select(ia, true);
   renderApproaches();
-  if (matchMedia('(max-width: 640px)').matches) toggleApproaches(false);
+  if (matchMedia('(max-width: 640px)').matches) setSide(false);
 });
-function toggleApproaches(show) {
-  $('approaches').hidden = !show;
-  $('approachesBtn').setAttribute('aria-expanded', String(show));
-  $('approachesBtn').classList.toggle('on', show);
+// ---- side panel: tabs, and collapsing it out of the way ----
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+  $('approaches').hidden = name !== 'approaches';
+  $('layers').hidden = name !== 'layers';
 }
-$('approachesBtn').addEventListener('click', () => toggleApproaches($('approaches').hidden));
+function setSide(open) {
+  $('side').hidden = !open;
+  $('openSide').hidden = open;
+}
+document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+$('collapse').addEventListener('click', () => setSide(false));
+$('openSide').addEventListener('click', () => setSide(true));
+showTab('layers');
+setSide(!matchMedia('(max-width: 900px)').matches);
+speedButtons(1);
 
 $('aboutBtn').addEventListener('click', () => $('about').showModal());
 try {
@@ -555,7 +568,7 @@ document.addEventListener('keydown', (e) => {
   if (e.target.closest('input') || $('about').open) return;
   if (e.key === '/') { e.preventDefault(); $('q').focus(); }
   else if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); togglePause(); }
-  else if (e.key === 'Escape') { if (!$('approaches').hidden) toggleApproaches(false); else select(null); }
+  else if (e.key === 'Escape') { if (selected !== null) select(null); else setSide(false); }
 });
 
 // ---- start ----
@@ -573,9 +586,9 @@ async function start() {
   catalog.forEach((c, i) => { byKind[c.kind].push(i); indexOf.set(c.id, i); });
   approaches = await api.closest().catch(() => null);
   if (approaches && approaches.approaches.length) {
-    $('approachesBtn').hidden = false;
+    $('tab-approaches').hidden = false;
     renderApproaches();
-    if (matchMedia('(min-width: 900px)').matches) toggleApproaches(true);
+    showTab('approaches');
   }
   let saved = null;
   try { saved = localStorage.getItem('orbitscreen.view'); } catch (e) { /* default */ }

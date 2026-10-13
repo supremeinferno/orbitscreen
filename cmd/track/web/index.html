@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>orbitscreen live</title>
+<title>orbitscreen · live satellite tracker</title>
+<meta name="description" content="Every object in the public satellite catalog in 3D, and the next day's closest approaches, computed in your browser by a Go SGP4 compiled to WebAssembly.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 <script type="importmap">
 {"imports": {
@@ -17,40 +21,59 @@
 <canvas id="globe" hidden aria-label="3D globe showing every tracked object in orbit at its altitude"></canvas>
 
 <header class="bar">
-  <a class="brand" href="https://github.com/supremeinferno/orbitscreen" title="Source code and write-up on GitHub">orbitscreen <span>live</span></a>
-  <div class="clock">
+  <div class="left">
+    <a class="brand" href="https://github.com/supremeinferno/orbitscreen" title="Source code and write-up on GitHub">orbitscreen</a>
     <time id="simtime">loading…</time>
-    <div class="speeds" role="group" aria-label="Time speed">
-      <button id="pause" aria-label="Pause" title="Pause (Space)">❚❚</button>
-      <button data-speed="1" class="on">1×</button>
-      <button data-speed="10">10×</button>
-      <button data-speed="60">60×</button>
-      <button data-speed="600">600×</button>
-      <button id="now" title="Jump back to the current time">Now</button>
+  </div>
+  <div class="playback" role="group" aria-label="Time">
+    <button id="pause" class="btn icon" aria-label="Pause" title="Pause (Space)"></button>
+    <div class="seg" role="group" aria-label="Speed">
+      <button class="btn on" data-speed="1">1×</button>
+      <button class="btn" data-speed="10">10×</button>
+      <button class="btn" data-speed="60">60×</button>
+      <button class="btn" data-speed="600">600×</button>
     </div>
+    <button id="now" class="btn" title="Jump back to the current time">Now</button>
   </div>
-  <div class="views" role="group" aria-label="View">
-    <button data-view="3d">Globe</button>
-    <button data-view="2d">Map</button>
-  </div>
-  <div class="links">
-    <button id="approachesBtn" hidden aria-expanded="false" aria-controls="approaches">Close approaches</button>
-    <button id="aboutBtn" aria-haspopup="dialog">About</button>
-  </div>
-  <div class="search">
-    <input id="q" type="search" placeholder="Search name or NORAD ID…  ( / )" autocomplete="off" aria-label="Search satellites">
-    <ul id="suggest" hidden></ul>
+  <div class="right">
+    <div class="search">
+      <svg class="glass" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <input id="q" type="search" placeholder="Search satellites" autocomplete="off" aria-label="Search by name or NORAD ID">
+      <kbd class="hint">/</kbd>
+      <ul id="suggest" hidden></ul>
+    </div>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="View">
+        <button class="btn" data-view="3d">Globe</button>
+        <button class="btn" data-view="2d">Map</button>
+      </div>
+      <button id="aboutBtn" class="btn icon" aria-haspopup="dialog" aria-label="About this site" title="About">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.9v.1"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
-<aside class="legend" aria-label="Filters">
-  <div id="kinds"></div>
-  <div class="orbits" id="orbits"></div>
-  <p class="meta" id="meta"></p>
+<aside class="side" id="side" aria-label="Approaches and layers">
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-approaches" data-tab="approaches" aria-controls="approaches" hidden>Close approaches</button>
+    <button class="tab" role="tab" id="tab-layers" data-tab="layers" aria-controls="layers">Layers</button>
+    <button class="btn icon collapse" id="collapse" aria-label="Hide panel" title="Hide panel">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>
+    </button>
+  </div>
+  <section id="approaches" role="tabpanel" aria-labelledby="tab-approaches" hidden></section>
+  <section id="layers" role="tabpanel" aria-labelledby="tab-layers" hidden>
+    <div id="kinds"></div>
+    <div class="orbits" id="orbits" role="group" aria-label="Orbit classes"></div>
+  </section>
 </aside>
+<button class="btn icon open-side" id="openSide" aria-label="Show panel" title="Show panel" hidden>
+  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg>
+</button>
 
 <aside class="panel" id="panel" hidden aria-live="polite"></aside>
-<aside class="list" id="approaches" hidden aria-label="Closest approaches in the next 24 hours"></aside>
+<div class="status" id="meta" aria-live="off"></div>
 <div class="loading" id="loading" role="status">Loading the catalog…</div>
 
 <dialog id="about" aria-labelledby="about-title">
@@ -61,7 +84,8 @@
     <li><strong>Whole catalog, 7 days, 5 minutes</strong> on a laptop: all 32,591 objects in orbit, ~136× faster than checking every pair.</li>
     <li><strong>100% of CelesTrak SOCRATES's close approaches</strong> found on the same data (205,716 of 205,716), with miss distances within 0.5 m.</li>
   </ul>
-  <p class="note">Try <em>Close approaches</em> for the next 24 hours, click any dot, or search by name. Drag to turn the globe, scroll to zoom out to the geostationary ring. Keys: <kbd>/</kbd> search, <kbd>Space</kbd> pause, <kbd>Esc</kbd> clear. These are screening results from public orbit data, accurate to about a kilometre: worth a closer look, not collision predictions.</p>
+  <p class="note">Open <em>Close approaches</em> for the next 24 hours, click any dot, or search by name. Drag to turn the globe; scroll to zoom out to the geostationary ring. Keys: <kbd>/</kbd> search, <kbd>Space</kbd> pause, <kbd>Esc</kbd> clear.</p>
+  <p class="note">These are screening results from public orbit data, accurate to about a kilometre: worth a closer look, not collision predictions.</p>
   <div class="actions">
     <a href="https://github.com/supremeinferno/orbitscreen">Code &amp; write-up on GitHub</a>
     <a href="https://github.com/supremeinferno/orbitscreen/blob/main/docs/05-screening.md">How screening works</a>
