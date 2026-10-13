@@ -22,7 +22,7 @@ CelesTrak has **no single "every object" download**. You can fetch a group, a la
 | `iridium-33-debris.csv` | `GROUP=iridium-33-debris` | 109 | Debris from the other half of that collision |
 | `last-30-days.csv` | `GROUP=last-30-days` | 225 | Recent launches, including rocket bodies |
 
-After removing duplicates (an object can be in several groups), that's **20,489 objects**. The full public catalog is around 30,000 objects in orbit, so roughly a third is missing. The missing part is mostly debris from other breakups, dead satellites and spent rocket bodies outside GEO. **This matters for the SOCRATES comparison.** SOCRATES screens against the full catalog, so it will report conjunctions with objects we don't have. Getting the full catalog from Space-Track is planned for milestone 4.
+After removing duplicates (an object can be in several groups), that's **20,489 objects**. The full public catalog is around 30,000 objects in orbit, so roughly a third is missing. The missing part is mostly debris from other breakups, dead satellites and spent rocket bodies outside GEO. **This matters for the SOCRATES comparison.** SOCRATES screens against the full catalog, so it will report conjunctions with objects we don't have. The SOCRATES comparison and the final speed numbers therefore use Space-Track's full catalog, 32,591 objects in orbit on 13 October; see [chapter 8](08-socrates.md#results).
 
 `cmd/fetch` reuses any file younger than 2 hours instead of downloading it again. CelesTrak only updates every few hours and asks users not to poll more often than that.
 

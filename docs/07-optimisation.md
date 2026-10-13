@@ -52,6 +52,19 @@ All four found the same 2,264 conjunctions.
 
 **Full 7-day screen, whole catalog: 3 min 3 s** with the grid on 10 cores, against ~4.3 hours projected for brute force (60,480 steps × 256 ms). That's **~85×**. The run made 1.24 billion SGP4 calls, 13.5 billion pair checks and 2.0 million refinements, and found 847,469 conjunctions closer than 5 km.
 
+### The whole catalog
+
+CelesTrak's groups miss about a third of the catalog (see [chapter 4](04-catalog.md)). The same run on Space-Track's full catalog, 32,591 objects on 13 Oct 2026, all pairs, 7 days from 11:00 UTC:
+
+| Method | Workers | 7-day window | Pair checks |
+|---|---|---|---|
+| Brute force | 1 | ~11 h 23 min (projected from 60 steps, 677 ms each) | 31.8 billion per 10 minutes |
+| **Grid** | **10** | **5 min 0 s** | 25.8 billion for the whole week |
+
+That's **~136×**, and 995,779 conjunctions. With 1.6× the objects of the CelesTrak catalog, brute force takes 2.6× as long, as O(N²) predicts. The grid takes only 1.6× as long.
+
+The full catalog brings in decaying debris that CelesTrak's groups mostly leave out. In the SOCRATES comparison's catalog, three of them blow up in SGP4 late in the week, which inflated the coarse bound until the grid was doing brute force's work. The screener now guards against that ([chapter 5](05-screening.md#a-second-trap-sgp4-that-blows-up-without-an-error)).
+
 ## Where the time goes now
 
 `go run ./cmd/screen -cpuprofile cpu.prof`, then `go tool pprof -top`, on the 7-day run:
