@@ -81,6 +81,8 @@ The page talks to one small file, `api.js`, with three functions: `catalog()`, `
 
 **Speed.** One `positions` call for 21,069 objects takes about **30 ms** as WebAssembly (measured in Node.js on the M4), against ~10 ms natively. Fast enough to recompute everything every second, or 4 times a second when time-warping, without a Web Worker.
 
+**Close approaches.** The site also lists the next day's closest approaches. When the site is built, [`site/closest`](../site/closest/main.go) runs this project's grid screener ([chapter 5](05-screening.md)) for 24 hours, SOCRATES-style: pairs involving an active satellite, but not two active satellites of the same fleet, which their operator handles. It keeps the 30 closest pairs as JSON. That takes ~25 s on the M4's 10 cores, about a minute on GitHub's runners. Clicking one jumps the clock to a minute before closest approach, with both objects highlighted and a countdown. On the first build: 11,092 pairs within 5 km in a day, the closest at 63 m (a Fengyun-1C fragment and a Starlink, 12 km/s apart).
+
 **Fresh data.** A [GitHub Action](../.github/workflows/site.yml) fetches the element sets from CelesTrak every 6 hours, builds the site with [`site/build.sh`](../site/build.sh) and deploys it. Data is cached in 2-hour slots, so pushes never fetch from CelesTrak more often than it asks.
 
 ## The map

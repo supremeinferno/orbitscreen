@@ -4,7 +4,7 @@
 
 `orbitscreen` is a conjunction screener written in Go from scratch, with no orbital-mechanics dependencies. It reads the public satellite catalog, predicts where every object will be over the next 7 days, and finds every pair that comes within a few kilometres of each other. Then it checks its answers against [CelesTrak SOCRATES](https://celestrak.org/SOCRATES/), the public reference service for this job.
 
-It also includes a **live tracker** that draws every object in the catalog moving on a world map. **Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**. It runs the project's own Go SGP4 in your browser, compiled to WebAssembly.
+It also includes a **live tracker** that draws every object in the catalog moving on a world map. **Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**. It runs the project's own Go SGP4 in your browser, compiled to WebAssembly, and lists the closest approaches of the next 24 hours from the project's screener.
 
 ![Live tracker: ~20,000 objects on a world map, ISS selected with its ground track](docs/img/tracker.jpg)
 
