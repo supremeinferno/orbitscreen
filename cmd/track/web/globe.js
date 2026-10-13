@@ -195,11 +195,15 @@ export function createGlobe(canvas) {
       past.visible = future.visible = sel !== null;
     },
     setSun(lat, lon) { toVec(lat, lon, 0, sun.position).multiplyScalar(10); },
-    // Turn the camera to look down on a point, from at least `above` Earth radii.
+    // Turn the camera to look down on a point, from far enough out to see
+    // it. High orbits are seen from 25° above, so a ring like the
+    // geostationary belt shows as an ellipse rather than edge-on.
     flyTo(lat, lon, alt) {
       const d = camera.position.length();
-      fly = { t0: performance.now(), from: camera.position.clone().normalize(), to: toVec(lat, lon, 0).normalize(),
-        d0: d, d1: Math.max(d, 1 + alt / R + 1.6) };
+      const high = alt > 5000, r = 1 + alt / R;
+      const viewLat = high ? Math.max(-60, Math.min(60, lat + (lat < 0 ? -25 : 25))) : lat;
+      fly = { t0: performance.now(), from: camera.position.clone().normalize(), to: toVec(viewLat, lon, 0).normalize(),
+        d0: d, d1: Math.max(d, high ? 2.2 * r : r + 1.6) };
     },
     pick(x, y, maxPx) {
       let best = null, bestD = maxPx * maxPx;

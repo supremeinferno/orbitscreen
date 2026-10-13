@@ -547,6 +547,10 @@ async function setView(v) {
       globe.setTexture(mapTexture());
       syncSelection();
       if (info) globe.setTrack(info.track, info.trackNow);
+      // Positions may have arrived before three.js did: look at the selection now.
+      if (selected !== null && pos && !Number.isNaN(pos[3 * selected])) {
+        globe.flyTo(pos[3 * selected], pos[3 * selected + 1], pos[3 * selected + 2]);
+      }
     } catch (e) {
       console.warn('3D view unavailable', e);
       v = '2d';
