@@ -24,6 +24,8 @@ Terms used in the code and docs, in plain words. Variable names from Vallado's c
 
 **Epoch.** The moment a TLE describes. Predictions are best near the epoch and degrade with distance from it, in both directions.
 
+**DSE.** Days Since Epoch: in SOCRATES results, the time from an element set's epoch to the TCA. Large values mean old data and less trustworthy predictions. TCA − DSE recovers which element set SOCRATES used.
+
 **ECEF.** Earth-Centred, Earth-Fixed: a frame that rotates with the Earth, so a point on the ground has constant coordinates. TEME rotated by GMST gives ECEF (ignoring polar motion).
 
 **Footprint.** The area of the Earth from which an object is above the horizon: a circle of angular radius arccos(R / (R + h)) around its ground point.
@@ -66,6 +68,8 @@ Terms used in the code and docs, in plain words. Variable names from Vallado's c
 
 **Resonance** (`irez`). When an orbit's period is a simple fraction of Earth's rotation (12 h or 24 h), the satellite repeatedly passes over the same irregularities in Earth's gravity field, and their effect builds up. SGP4 integrates these effects numerically in 720-minute steps.
 
+**Recall.** The share of a reference's results that we also find; here, the share of SOCRATES's conjunctions our screen also reports.
+
 **Refinement.** Finding the exact time of closest approach and miss distance for a candidate pair, here by golden-section search on the true SGP4 distance.
 
 **Secular vs periodic.** *Secular* changes accumulate steadily, like RAAN drifting a few degrees per day. *Periodic* changes oscillate and average out. SGP4 models both.
@@ -75,6 +79,8 @@ Terms used in the code and docs, in plain words. Variable names from Vallado's c
 **SOCRATES.** Satellite Orbital Conjunction Reports Assessing Threatening Encounters in Space: CelesTrak's public close-approach screening service, and the reference this project validates against.
 
 **Space-Track.** [space-track.org](https://www.space-track.org/), the US Space Force's public distribution site for orbit data. It is the only source of the *full* public catalog, and needs a free account.
+
+**SupGP.** Supplemental GP: element sets CelesTrak fits to ephemerides published by satellite operators (SpaceX, OneWeb, …). Much more accurate than the Space Force's GP sets for those satellites, and preferred by SOCRATES where available.
 
 **TCA.** Time of Closest Approach: the moment two objects are nearest each other during an encounter. The distance at that moment is the *miss distance*.
 

@@ -69,7 +69,11 @@ Each surviving pair-interval gets a **golden-section search** on the true distan
 
 ### Step 4: merging, and two kinds of non-event
 
-Detections closer than the threshold are grouped per pair. Consecutive detections within two steps of each other become one conjunction, keeping the closest. Two things are then dropped:
+A conjunction is a **local minimum** of the distance between two objects, closer than the threshold. That's also how SOCRATES counts them. A slow pair, such as two satellites from the same launch, can stay within 5 km for hours and pass through a minimum every orbit, and each minimum is a separate conjunction.
+
+The same minimum can be detected twice. When it lies inside one interval, the neighbouring interval's closest point is its shared end, where the distance is still falling. Refinement marks such *edge* detections, and merging drops an edge detection when a detection of the same pair within one step is at least as close. (An earlier version instead chained every detection of a pair within two steps into one conjunction. For slow pairs that merged several real minima into one; the SOCRATES comparison exposed it, see [chapter 8](08-socrates.md).)
+
+Two things are then dropped:
 
 - **Window-edge minima.** If an encounter's closest point is exactly the start or end of the window, the pair was closer before the window (or will be after it). That's not a TCA.
 - **Attached objects** (the ISS and its modules, docked vehicles) are skipped before any of this; see [chapter 4](04-catalog.md#attached-objects).

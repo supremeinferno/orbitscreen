@@ -17,7 +17,7 @@ It also includes a **live tracker** that draws every object in the catalog movin
 | 1. SGP4 propagator in Go, verified against reference implementations | ✅ Done |
 | 2. Brute-force screener: check every pair, measure the "before" time | ✅ Done |
 | 3. Optimised screener: altitude filter, spatial grid, goroutine worker pool, pprof profiling | ✅ Done |
-| 4. Validate against SOCRATES: what % of their close approaches do we find? | ☐ |
+| 4. Validate against SOCRATES: what % of their close approaches do we find? | ⏳ In progress |
 | 5. Final numbers: full catalog over 7 days in ___ min, ___% SOCRATES match, ___× speedup | ☐ |
 | ➕ Live tracker: every satellite moving on a world map in the browser | ✅ Done |
 
@@ -56,9 +56,10 @@ Start with the docs. They are written to be read in order, and they assume no or
 5. [Screening](docs/05-screening.md). How close approaches are found without missing any, why SGP4's velocity can't be trusted for this, and the brute-force baseline.
 6. [The live tracker](docs/06-live-tracker.md). Turning SGP4 positions into latitude and longitude, and drawing 20,000 objects on a map every second.
 7. [Optimisation](docs/07-optimisation.md). Altitude filter, spatial grid and parallel workers: what each bought, and what the profiler says is left.
-8. [Glossary](docs/glossary.md). Every term of art used in the code and docs.
+8. [Validation against SOCRATES](docs/08-socrates.md). Rebuilding the catalog exactly as CelesTrak's SOCRATES saw it, and matching its results (in progress).
+9. [Glossary](docs/glossary.md). Every term of art used in the code and docs.
 
-More chapters arrive with each milestone: SOCRATES validation next.
+The final write-up comes with milestone 5.
 
 ## Repository layout
 
