@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"time"
 	"unicode"
@@ -54,6 +55,30 @@ func fleet(name string) string {
 	return name
 }
 
+// closest returns the top closest approaches, one per pair (slow pairs pass
+// many times), leaving out pairs of active satellites of the same fleet,
+// and how many pairs are left in all.
+func closest(found []screen.Conjunction, top int) ([]approach, int) {
+	found = slices.Clone(found)
+	sort.SliceStable(found, func(i, j int) bool { return found[i].MissKm < found[j].MissKm })
+	var out []approach
+	seen := map[[2]int]bool{}
+	for _, c := range found {
+		if c.A.Primary && c.B.Primary && fleet(c.A.Name) == fleet(c.B.Name) {
+			continue
+		}
+		if k := [2]int{c.A.ID, c.B.ID}; !seen[k] {
+			seen[k] = true
+			if len(out) < top {
+				out = append(out, approach{c.TCA.Truncate(time.Millisecond),
+					math.Round(c.MissKm*1000) / 1000, math.Round(c.RelSpeed*1000) / 1000,
+					object{c.A.ID, c.A.Name}, object{c.B.ID, c.B.Name}})
+			}
+		}
+	}
+	return out, len(seen)
+}
+
 func main() {
 	dataDir := flag.String("data", "data", "folder of OMM CSV files")
 	hours := flag.Float64("hours", 24, "screening window, hours from now")
@@ -72,24 +97,8 @@ func main() {
 	found, ss := screen.Screen(objs, cfg, screen.Grid)
 	log.Printf("%d objects, %d conjunctions in %v", st.Objects, len(found), ss.Elapsed.Round(time.Second))
 
-	// Closest first, then one per pair: slow pairs pass many times.
-	sort.Slice(found, func(i, j int) bool { return found[i].MissKm < found[j].MissKm })
-	seen := map[[2]int]bool{}
 	res := output{Generated: time.Now().UTC(), Start: start, Hours: *hours, Objects: st.Objects}
-	for _, c := range found {
-		if c.A.Primary && c.B.Primary && fleet(c.A.Name) == fleet(c.B.Name) {
-			continue
-		}
-		if k := [2]int{c.A.ID, c.B.ID}; !seen[k] {
-			seen[k] = true
-			if len(res.Approaches) < *top {
-				res.Approaches = append(res.Approaches, approach{c.TCA.Truncate(time.Millisecond),
-					math.Round(c.MissKm*1000) / 1000, math.Round(c.RelSpeed*1000) / 1000,
-					object{c.A.ID, c.A.Name}, object{c.B.ID, c.B.Name}})
-			}
-		}
-	}
-	res.Total = len(seen)
+	res.Approaches, res.Total = closest(found, *top)
 	b, _ := json.Marshal(res)
 	if err := os.WriteFile(*out, b, 0o644); err != nil {
 		log.Fatal(err)
