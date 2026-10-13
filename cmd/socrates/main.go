@@ -4,7 +4,7 @@
 //	go run ./cmd/socrates \
 //	    -socrates data/socrates/sort-minRange.csv \
 //	    -asof 2026-10-12T08:22:44Z -start 2026-10-12T09:00:00Z \
-//	    -data data/spacetrack/gp_history.csv,data/spacetrack/gp.csv,data/active.csv
+//	    -data data/spacetrack/gp_history.csv,data/spacetrack/gp.csv
 //
 // The run's data time (-asof) and window start (-start) are shown on
 // celestrak.org/SOCRATES/search.php. See docs/08-socrates.md.

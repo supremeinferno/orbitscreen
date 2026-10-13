@@ -63,6 +63,12 @@ The worst case across all 20,489 objects is **9.80 m/s²**, for STARLINK-4464 mi
 
 (Objects with a perigee *below the surface* break any bound, because SGP4 happily produces positions inside the Earth. They're removed when the catalog loads; see [chapter 4](04-catalog.md#sub-orbital-objects).)
 
+### A second trap: SGP4 that blows up without an error
+
+The coarse bound uses the fastest object in the catalog, so it's only as good as the worst sample. The first full SOCRATES comparison ([chapter 8](08-socrates.md)), on Space-Track's whole catalog with debris, ran for over an hour without finishing. A 7-day screen normally takes minutes. The cause was three decaying debris objects (CZ-6A DEB 60778 and 54922, CZ-4C DEB 35248). A few days past their epochs their SGP4 elements blow up, and they're flung out to 70,000–230,000 km at **~6,000 km/s**, with no SGP4 error. One such sample makes the coarse bound ~120,000 km, every pair passes it, and the grid turns into brute force for the rest of the week.
+
+Nothing in orbit can move faster than Earth's escape speed at the surface, 11.2 km/s. So an object that moves faster than that in a step is treated like an SGP4 failure for that step: it's left out of the step's pairs and out of the speed bound. Its positions there are meaningless anyway. `TestDivergedObjectNotLive` covers it.
+
 ### Step 3: refinement
 
 Each surviving pair-interval gets a **golden-section search** on the true distance: two SGP4 calls per iteration, 25 iterations. That shrinks a 10 s interval to ~0.1 ms. At 15 km/s that's 1.5 m along track, and since distance is flat at its minimum, the miss distance is accurate far below a metre. The two interval edges are also checked, in case the minimum sits on a boundary because the encounter peaks in the neighbouring interval.
