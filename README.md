@@ -18,10 +18,10 @@ It also includes a **live tracker** that draws every object in the catalog movin
 | 2. Brute-force screener: check every pair, measure the "before" time | ✅ Done |
 | 3. Optimised screener: altitude filter, spatial grid, goroutine worker pool, pprof profiling | ✅ Done |
 | 4. Validate against SOCRATES: what % of their close approaches do we find? | ✅ Done |
-| 5. Final numbers: full catalog over 7 days in ___ min, ___% SOCRATES match, ___× speedup | ☐ |
+| 5. Final numbers: full catalog over 7 days in 5 min, 100% SOCRATES match (same data), ~136× speedup | ✅ Done |
 | ➕ Live tracker: every satellite moving on a world map in the browser | ✅ Done |
 
-## Results so far
+## Results
 
 **SGP4 accuracy** (details in [docs/03-verification.md](docs/03-verification.md)):
 
@@ -43,7 +43,14 @@ All 7 verification cases that are *supposed* to fail (decayed satellites, imposs
 | Spatial grid | 1 | 5.5 s | |
 | **Spatial grid** | **10** | **1.15 s** | **3 min 3 s** |
 
-**Full catalog over 7 days in 3 minutes, ~85× faster than brute force.**
+On the **whole public catalog** from Space-Track (32,591 objects, 13 Oct 2026, all pairs):
+
+| Method | Cores | 7-day window | Conjunctions |
+|---|---|---|---|
+| Brute force | 1 | ~11.4 h (projected from 10 minutes) | |
+| **Spatial grid** | **10** | **5 min 0 s** | 995,779 |
+
+**Whole catalog over 7 days in 5 minutes, ~136× faster than brute force.** The speedup grows with the catalog. Going from 20,481 to 32,591 objects (1.6×), brute force takes 2.6× as long (O(N²)), the grid only 1.6× as long.
 
 **Validation against SOCRATES** (details in [docs/08-socrates.md](docs/08-socrates.md)). One SOCRATES Plus run (206,222 conjunctions, 7 days from 12 Oct 2026), rebuilt with the element sets SOCRATES used from Space-Track's history. Our screen of 32,465 objects took 5 min 1 s; SOCRATES took 14 h.
 
@@ -69,7 +76,11 @@ Start with the docs. They are written to be read in order, and they assume no or
 8. [Validation against SOCRATES](docs/08-socrates.md). Rebuilding the catalog exactly as CelesTrak's SOCRATES saw it, and matching its results: 100% where the data is the same.
 9. [Glossary](docs/glossary.md). Every term of art used in the code and docs.
 
-The final write-up comes with milestone 5.
+## Results in short
+
+- **Speed.** The whole public catalog, **32,591 objects**, screened for every approach within 5 km over **7 days in 5 minutes** on a laptop (Apple M4). Brute force would take **11.4 hours**: a **~136× speedup**.
+- **Correctness.** Against CelesTrak SOCRATES, rebuilt with the exact element sets it used: **100%** of its close approaches found where the data is the same (**205,716 of 205,716**), with miss distances within **0.5 m**. 99.84% overall; every miss is explained by different input data, none by the screener.
+- **Along the way**, the checks caught real bugs and traps, among them: SGP4's velocity isn't the derivative of its position, decaying objects that blow up without an error, a merge step that hid repeated close approaches, an O(n²) sort that only showed at full scale, and Space-Track's republished element sets. Each is described in the chapter where it was found.
 
 ## Repository layout
 
@@ -78,11 +89,13 @@ internal/tle/        TLE and OMM CSV parsers
 internal/sgp4/       SGP4/SDP4 propagator, a port of Vallado's 2020 reference code
   testdata/          Vallado's verification TLEs and expected output
 internal/catalog/    Loads data files: dedup, primaries, docked-object groups
-internal/screen/     Close-approach screening: bounds, refinement, brute force
+internal/screen/     Close-approach screening: bounds, refinement, brute force, grid
+internal/socrates/   SOCRATES CSV reader, as-of catalog rebuild, matching
 internal/earth/      TEME → Earth-fixed → latitude/longitude/altitude
 cmd/fetch/           Downloads orbit data from CelesTrak into data/
 cmd/screen/          The screener CLI
 cmd/track/           Live tracker: web server + embedded map page
+cmd/socrates/        Screens as a SOCRATES run did and reports recall
 cmd/crosscheck/      Dumps positions for a whole catalog + Python script to compare with python-sgp4
 docs/                The explanations above
 ```
@@ -114,14 +127,30 @@ python3 -m venv .venv && .venv/bin/pip install sgp4
 
 (CelesTrak asks users not to download the same data more than once every couple of hours. Please save the file and reuse it.)
 
+To repeat the SOCRATES comparison you need a free [Space-Track.org](https://www.space-track.org/) account. Log in with a browser, then open these query URLs to download CSVs:
+
+| Save as | Query URL (after `https://www.space-track.org/basicspacedata/query/`) |
+|---|---|
+| `data/spacetrack/gp.csv` | `class/gp/decay_date/null-val/epoch/%3Enow-30/orderby/norad_cat_id/format/csv` |
+| `data/spacetrack/gp_history.csv` | `class/gp_history/EPOCH/2026-10-07--2026-10-13/orderby/norad_cat_id/format/csv` (the days before the SOCRATES run) |
+
+Save SOCRATES's results, `https://celestrak.org/SOCRATES/sort-minRange.csv`, as `data/socrates/sort-minRange.csv`. CelesTrak replaces it with every run, so note the run's data time and window start from [the SOCRATES search page](https://celestrak.org/SOCRATES/search.php). Then:
+
+```sh
+go run ./cmd/socrates -asof 2026-10-12T08:22:44Z -start 2026-10-12T09:00:00Z \
+    -data data/spacetrack/gp_history.csv,data/spacetrack/gp.csv     # ~5 min
+```
+
 ## Limitations
 
-These limits are real, and they will be measured, not hand-waved, as the project progresses:
+Each of these was measured during the project, not just assumed:
 
-- **TLE accuracy is the ceiling.** TLEs are fitted to tracking data and published without covariance (uncertainty) information. Position errors are on the order of a kilometre at epoch and grow by roughly a few kilometres per day, more for low, high-drag orbits. A 7-day screen is therefore much less certain on day 7 than on day 1.
-- **SGP4 is a simplified model by design.** It is the *correct* model for TLEs (they are fitted with it), but it is not a high-precision propagator.
-- **The public catalog is incomplete.** Classified objects and debris too small to track (roughly under 10 cm in LEO) are not in it.
-- Operators decide on manoeuvres using covariance-based probability of collision computed from far better data. Nothing here replaces that.
+- **The input data is the ceiling.** TLEs are fitted to tracking data and published without uncertainty information. Position errors are around a kilometre at epoch and grow by kilometres per day. How much that matters showed up directly: screening with data **one day newer** than SOCRATES's reproduced only **12%** of its conjunctions, although the screener matched 100% on the same data ([chapter 8](docs/08-socrates.md#the-data-must-match)).
+- **Day 7 is far less certain than day 1.** The number of conjunctions found per day more than triples over the week (43,024 on day 1, 152,813 on day 7), most likely because predictions lose Starlink's coordinated spacing ([chapter 7](docs/07-optimisation.md#why-conjunctions-grow-day-by-day)).
+- **SGP4 is a simplified model by design.** It's the *right* model for TLEs (they're fitted with it), but not a high-precision propagator. Its velocity output is off from its own position's derivative by up to 52 m/s, and decaying objects can blow up to thousands of km/s without an error ([chapter 5](docs/05-screening.md)). The screener guards against both.
+- **No SupGP data.** SOCRATES uses more accurate, operator-based SupGP element sets for Starlink, OneWeb and others where available. We don't, which is why only 35% of the 502 SOCRATES conjunctions computed from different element sets match.
+- **No collision probability.** Operators decide on manoeuvres using covariance-based probability of collision, computed from far better data. This project reports geometry only.
+- **The public catalog is incomplete.** Classified objects and debris too small to track (roughly under 10 cm in LEO) aren't in it.
 
 ## References
 
