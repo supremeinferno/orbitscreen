@@ -1,0 +1,30 @@
+# Vet, format check and tests on every push and pull request, plus the
+# builds the site depends on (WebAssembly engine, JavaScript syntax).
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      - run: GOOS=js GOARCH=wasm go vet ./cmd/trackwasm
+      - run: go test ./...
+      - run: GOOS=js GOARCH=wasm go build -o /dev/null ./cmd/trackwasm
+      - name: JavaScript syntax
+        run: |
+          for f in cmd/track/web/app.js cmd/track/web/api.js site/api.js; do node --check "$f"; done
+          cp cmd/track/web/globe.js "$RUNNER_TEMP/globe.mjs" && node --check "$RUNNER_TEMP/globe.mjs"

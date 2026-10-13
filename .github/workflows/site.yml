@@ -27,8 +27,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       # CelesTrak asks for the same data at most every couple of hours, so
@@ -36,15 +36,15 @@ jobs:
       # (cmd/fetch skips files younger than 2 hours).
       - id: slot
         run: echo "slot=$(( $(date +%s) / 7200 ))" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: data
           key: celestrak-${{ steps.slot.outputs.slot }}
       - run: go run ./cmd/fetch
       - run: site/build.sh
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
