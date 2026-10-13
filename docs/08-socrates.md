@@ -28,7 +28,9 @@ SOCRATES also uses **SupGP** element sets where they exist. These are fitted by 
 
 ## The data must match
 
-A first attempt screened with the freshest CelesTrak data, about a day newer than SOCRATES's. Only **12%** of SOCRATES's conjunctions matched. Yet for the few pairs where both objects happened to have the *same* element set in both runs, the match rate was **96%**, with TCAs agreeing to a median of 0 ms and miss distances to 0.5 m.
+A first attempt screened with the freshest CelesTrak data, about a day newer than SOCRATES's. Only **12%** of SOCRATES's conjunctions matched. Yet for the 90 conjunctions where both objects happened to have the *same* element set in both runs, the match rate was **100%** (after fixing the bug below). TCAs agreed to a median of 0 ms (max 88 ms), and miss distances to within 0.5 m.
+
+For every miss, the tool checks our own closest approach for that pair. None of them was a conjunction our screener should have reported and didn't. All were explained by the data difference: we computed more than 5 km (143,333), within 0.25 km of the threshold (1,170), a minimum more than 2 minutes from SOCRATES's TCA (657), or a conjunction we did report, but more than 60 s from SOCRATES's TCA (217).
 
 That's the most important lesson of the comparison. **Conjunctions are extremely sensitive to which element sets you use.** A newer TLE moves an object by a kilometre or more, enough to make most 5 km conjunctions appear, disappear or shift. Comparing two screens run on different data mostly measures the data difference, not the screeners.
 
@@ -52,7 +54,7 @@ For every SOCRATES conjunction we miss, the tool computes our own closest approa
 
 ## A bug the comparison found
 
-The very first comparison flagged three conjunctions where both objects had the same data and our own closest-approach check got **exactly** SOCRATES's distance (2.350 km, 3.065 km, 3.490 km), yet the screener hadn't reported them.
+The very first comparison (79 of 82 same-data conjunctions found) flagged three conjunctions where both objects had the same data and our own closest-approach check got **exactly** SOCRATES's distance (2.350 km, 3.065 km, 3.490 km), yet the screener hadn't reported them.
 
 All three were slow pairs from the same launch (Transporter-18 objects, a Hulianwang pair) that stay within 5 km for hours and pass through a minimum every orbit. The screener's merge step chained every detection of a pair within 20 s of the previous one into a single conjunction, so a pair that never left the 5 km sphere got one conjunction for its whole stay. SOCRATES reports each minimum. The merge now keeps every local minimum ([chapter 5](05-screening.md#step-4-merging-and-two-kinds-of-non-event)), and `TestSlowPairEveryMinimum` covers it.
 

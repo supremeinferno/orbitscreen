@@ -163,7 +163,7 @@ func main() {
 	fmt.Printf("  |Δmiss|      median %8.1f m   p95 %8.1f m   max %8.1f m\n", q(dR, .5), q(dR, .95), q(dR, 1))
 
 	// ---- why did we miss the ones we missed? ----
-	diag := diagnose(matches, byID)
+	diag := diagnose(matches, byID, ours)
 	fmt.Printf("\nMisses, by our own closest approach for that pair within ±2 min of SOCRATES's TCA:\n")
 	for _, cat := range []string{"both objects: same element sets", "different element sets"} {
 		bins := map[string]int{}
@@ -173,9 +173,9 @@ func main() {
 			}
 		}
 		fmt.Printf("  %s:\n", cat)
-		for _, b := range []string{"under 5 km (should have been found)", "5.00-5.25 km (borderline)", "over 5.25 km", "propagation failed"} {
+		for _, b := range []string{binUnreported, binReported, binEdge, binBorderline, binOver, binFailed} {
 			if bins[b] > 0 {
-				fmt.Printf("    %-38s %7d\n", b, bins[b])
+				fmt.Printf("    %-62s %7d\n", b, bins[b])
 			}
 		}
 	}
@@ -250,9 +250,34 @@ type diagnosis struct {
 	bin string
 }
 
+const (
+	binReported   = "under 5 km, and we report it (TCA > tolerance away)"
+	binEdge       = "under 5 km only at the ±2 min edge (minimum is further away)"
+	binUnreported = "under 5 km at a minimum we don't report (screener bug?)"
+	binBorderline = "5.00-5.25 km (borderline)"
+	binOver       = "over 5.25 km"
+	binFailed     = "propagation failed"
+)
+
 // diagnose computes, for every SOCRATES conjunction we missed, our own
-// closest approach for that pair near SOCRATES's TCA.
-func diagnose(ms []socrates.Match, byID map[int]*catalog.Object) []diagnosis {
+// closest approach for that pair near SOCRATES's TCA, and checks whether we
+// report a conjunction at that time.
+func diagnose(ms []socrates.Match, byID map[int]*catalog.Object, ours []screen.Conjunction) []diagnosis {
+	const window = 2 * time.Minute
+	reported := map[[2]int][]time.Time{}
+	for _, c := range ours {
+		k := [2]int{c.A.ID, c.B.ID}
+		reported[k] = append(reported[k], c.TCA)
+	}
+	isReported := func(a, b int, t time.Time) bool {
+		k := [2]int{min(a, b), max(a, b)}
+		for _, rt := range reported[k] {
+			if rt.Sub(t).Abs() <= 5*time.Second {
+				return true
+			}
+		}
+		return false
+	}
 	out := make([]diagnosis, len(ms))
 	jobs := make(chan int)
 	var wg sync.WaitGroup
@@ -264,17 +289,21 @@ func diagnose(ms []socrates.Match, byID map[int]*catalog.Object) []diagnosis {
 				if a == nil || b == nil {
 					continue
 				}
-				_, km, ok := socrates.ClosestApproach(a, b, c.TCA, 2*time.Minute)
+				tca, km, ok := socrates.ClosestApproach(a, b, c.TCA, window)
 				d := diagnosis{km: km}
 				switch {
 				case !ok:
-					d.bin = "propagation failed"
-				case km < 5:
-					d.bin = "under 5 km (should have been found)"
-				case km < 5.25:
-					d.bin = "5.00-5.25 km (borderline)"
+					d.bin = binFailed
+				case km >= 5.25:
+					d.bin = binOver
+				case km >= 5:
+					d.bin = binBorderline
+				case tca.Sub(c.TCA).Abs() > window-time.Second:
+					d.bin = binEdge
+				case isReported(c.ID1, c.ID2, tca):
+					d.bin = binReported
 				default:
-					d.bin = "over 5.25 km"
+					d.bin = binUnreported
 				}
 				out[i] = d
 			}
