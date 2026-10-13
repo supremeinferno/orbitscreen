@@ -66,31 +66,49 @@ func Load(files []string, primary []string) ([]*Object, Stats, error) {
 		}
 	}
 
-	byID := map[int]*Object{}
+	var all []*tle.TLE
+	primaryIDs := map[int]bool{}
 	for _, path := range files {
-		recs, bad, err := readFile(path)
+		recs, bad, err := ReadFile(path)
 		if err != nil {
 			return nil, st, err
 		}
 		st.Records += len(recs) + bad
 		st.BadRecords += bad
-		prim := isPrimary[filepath.Clean(path)]
-		for _, el := range recs {
-			o, seen := byID[el.CatalogNum]
-			if seen {
-				st.Duplicates++
-				o.Primary = o.Primary || prim
-				if !el.Epoch.After(o.Elems.Epoch) {
-					continue
-				}
-				o.Elems = el
-			} else {
-				o = &Object{ID: el.CatalogNum, Elems: el, Primary: prim}
-				byID[el.CatalogNum] = o
+		if isPrimary[filepath.Clean(path)] {
+			for _, el := range recs {
+				primaryIDs[el.CatalogNum] = true
 			}
-			if el.Name != "" {
-				o.Name = el.Name
+		}
+		all = append(all, recs...)
+	}
+	objs, st2 := FromElements(all, primaryIDs)
+	st2.Records, st2.BadRecords = st.Records, st.BadRecords
+	return objs, st2, nil
+}
+
+// FromElements builds objects from element sets already in memory: it
+// keeps the newest set per catalog number, marks the IDs in primary as
+// primaries, initialises SGP4, drops objects SGP4 rejects or whose perigee
+// is underground, and groups attached objects. Stats.Records and
+// Stats.BadRecords are left at zero.
+func FromElements(sets []*tle.TLE, primary map[int]bool) ([]*Object, Stats) {
+	var st Stats
+	byID := map[int]*Object{}
+	for _, el := range sets {
+		o, seen := byID[el.CatalogNum]
+		if seen {
+			st.Duplicates++
+			if !el.Epoch.After(o.Elems.Epoch) {
+				continue
 			}
+			o.Elems = el
+		} else {
+			o = &Object{ID: el.CatalogNum, Elems: el, Primary: primary[el.CatalogNum]}
+			byID[el.CatalogNum] = o
+		}
+		if el.Name != "" {
+			o.Name = el.Name
 		}
 	}
 
@@ -119,7 +137,7 @@ func Load(files []string, primary []string) ([]*Object, Stats, error) {
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	st.Attached = groupAttached(out)
 	st.Objects = len(out)
-	return out, st, nil
+	return out, st
 }
 
 // groupAttached gives objects with identical orbital elements a shared,
@@ -163,9 +181,9 @@ func contains(xs []string, x string) bool {
 	return false
 }
 
-// readFile parses one file, sniffing OMM CSV versus TLE from its first line.
+// ReadFile parses one file, sniffing OMM CSV versus TLE from its first line.
 // It returns the good records and a count of bad ones.
-func readFile(path string) ([]*tle.TLE, int, error) {
+func ReadFile(path string) ([]*tle.TLE, int, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, 0, err
