@@ -60,6 +60,23 @@ All three were slow pairs from the same launch (Transporter-18 objects, a Hulian
 
 ## Results
 
-*In progress: the full comparison needs Space-Track's element-set history for the days before the run.*
+| SOCRATES conjunctions | Found by us | Recall |
+|---|---|---|
+| Both objects with the same element sets | 205,716 / 205,716 | **100%** |
+| Different element sets (SupGP, missing history) | 177 / 502 | 35.26% |
+| An object not in our data | 0 / 4 | 0% |
+| **All** | **205,893 / 206,222** | **99.84%** |
+
+**Every** SOCRATES conjunction computed from the same data as ours is found, in every 1 km band from 0 to 5 km.
+
+**Accuracy**, for those 205,716 conjunctions: the TCAs agree to a median of 0 ms (95th percentile 0 ms at the CSV's millisecond precision, max 0.42 s), and the miss distances to a median of 0.2 m (**max 0.5 m**). Two independent implementations, STK's SGP4 and this project's, agree to half a metre on every one of them. The few larger TCA differences are slow pairs, whose distance is nearly flat around its minimum.
+
+**The misses** (329) all involve an object with different element sets: SupGP, or a set missing from the downloaded history. The tool computes our own closest approach for each pair near SOCRATES's TCA. In no case did we compute under 5 km and fail to report it, so **no miss is a screener bug**: 306 are over 5.25 km with our data, 11 are borderline (5.00–5.25 km), and 8 come within 5 km only at the edge of the ±2 min search, with the true minimum further away.
+
+**What we report and SOCRATES doesn't:** 771,087 conjunctions, of which 762,525 are Starlink against Starlink and ~6,000 more are between other active satellites of the same fleet (Qianfan, Tianhui, OneWeb, Kuiper, …). SOCRATES skips these by design (rule 2 above). Of the remaining ~2,500, 199 involve an object in none of SOCRATES's conjunctions and 89 are borderline (our miss 4.75–5 km).
+
+### A data bug the comparison found
+
+The first full run gave 99.95%, not 100%. The 103 same-data misses, with miss distances off by up to 3.5 km, involved only a handful of objects, 23 of them one Transporter-16 object. Space-Track sometimes **republishes an element set with the same epoch**: a corrected fit, with a later `CREATION_DATE` and slightly different elements. `AsOf` matched on epoch alone and picked whichever copy it saw first, sometimes one published after SOCRATES's run. It now picks, among sets with the right epoch, the latest one published by the run's data time, and `TestAsOf` covers it. That took same-data recall to 100%.
 
 ← [7. Optimisation](07-optimisation.md) · [Glossary](glossary.md)

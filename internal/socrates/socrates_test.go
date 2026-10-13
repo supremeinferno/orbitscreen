@@ -45,8 +45,12 @@ func TestAsOf(t *testing.T) {
 		set(2, -20, -19), set(2, -2, -1), set(2, +3, +4), // not in SOCRATES: latest published before cut
 		set(3, +2, +3), // SOCRATES had it, but our history starts later
 		set(4, +1, +2), // new object, published after the cut: left out
+		// Same epoch republished: SOCRATES saw the -5 h correction, not the
+		// +1 h one. Object 6 is the same, but not in SOCRATES's results.
+		set(5, -10, -9), set(5, -10, -5), set(5, -10, +1),
+		set(6, -10, -9), set(6, -10, -5), set(6, -10, +1),
 	}
-	used := map[int]time.Time{1: at(-10).Add(20 * time.Second), 3: at(-50)}
+	used := map[int]time.Time{1: at(-10).Add(20 * time.Second), 3: at(-50), 5: at(-10)}
 	chosen, how := AsOf(sets, used, cut)
 	got := map[int]*tle.TLE{}
 	for _, s := range chosen {
@@ -64,6 +68,13 @@ func TestAsOf(t *testing.T) {
 	check(1, -10, Same)
 	check(2, -2, Published)
 	check(3, +2, Newer)
+	check(5, -10, Same)
+	check(6, -10, Published)
+	for _, id := range []int{5, 6} {
+		if s := got[id]; s != nil && !s.Created.Equal(at(-5)) {
+			t.Errorf("object %d: chose the set published at %v, want the -5 h one", id, s.Created)
+		}
+	}
 	if _, ok := got[4]; ok || how[4] != Unpublished {
 		t.Errorf("object 4: chosen=%v alignment %v, want left out", ok, how[4])
 	}

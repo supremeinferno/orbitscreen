@@ -134,8 +134,8 @@ const (
 
 // AsOf rebuilds the catalog as SOCRATES saw it. For each object it picks,
 // from every element set available (history plus current), the one whose
-// epoch matches the one SOCRATES used (used[id], from UsedEpochs). If there
-// is none, it falls back to the latest set published (Created) at or before
+// epoch matches the one SOCRATES used (used[id], from UsedEpochs) and was
+// published (Created) at or before cutoff. If there is none, it falls back to the latest set published (Created) at or before
 // cutoff, then to the oldest set available. Sets without a creation time
 // (CelesTrak data) count as published at their epoch.
 func AsOf(sets []*tle.TLE, used map[int]time.Time, cutoff time.Time) (chosen []*tle.TLE, how map[int]Alignment) {
@@ -157,22 +157,25 @@ func AsOf(sets []*tle.TLE, used map[int]time.Time, cutoff time.Time) (chosen []*
 			}
 			return s.Created
 		}
+		// Space-Track sometimes republishes a corrected set with the same
+		// epoch, so among equal epochs the latest published by the cut-off
+		// is the one SOCRATES saw.
 		var pick *tle.TLE
 		if want, ok := used[id]; ok {
-			best := math.Inf(1)
 			for _, s := range cands {
-				if d := math.Abs(s.Epoch.Sub(want).Seconds()); d < best {
-					best, pick = d, s
+				if math.Abs(s.Epoch.Sub(want).Seconds()) <= 60 && !created(s).After(cutoff) &&
+					(pick == nil || created(s).After(created(pick))) {
+					pick = s
 				}
 			}
-			if best <= 60 {
+			if pick != nil {
 				chosen, how[id] = append(chosen, pick), Same
 				continue
 			}
-			pick = nil
 		}
 		for _, s := range cands {
-			if c := created(s); !c.After(cutoff) && (pick == nil || s.Epoch.After(pick.Epoch)) {
+			if c := created(s); !c.After(cutoff) && (pick == nil || s.Epoch.After(pick.Epoch) ||
+				s.Epoch.Equal(pick.Epoch) && c.After(created(pick))) {
 				pick = s
 			}
 		}
