@@ -34,6 +34,7 @@ var sources = []struct{ file, query string }{
 	{"iridium-33-debris.csv", "GROUP=iridium-33-debris"},   // ditto
 	{"fengyun-1c-debris.csv", "GROUP=fengyun-1c-debris"},   // 2007 Chinese ASAT test
 	{"last-30-days.csv", "GROUP=last-30-days"},             // recent launches, incl. rocket bodies
+	{"analyst.csv", "GROUP=analyst"},                       // tracked but unidentified objects (80000+), screened by SOCRATES
 }
 
 func main() {
