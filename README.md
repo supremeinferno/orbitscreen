@@ -16,7 +16,7 @@ It also includes a **live tracker** that draws every object in the catalog movin
 |---|---|
 | 1. SGP4 propagator in Go, verified against reference implementations | ✅ Done |
 | 2. Brute-force screener: check every pair, measure the "before" time | ✅ Done |
-| 3. Optimised screener: altitude filter, spatial grid / k-d tree, goroutine worker pool, pprof profiling | ⏳ Next |
+| 3. Optimised screener: altitude filter, spatial grid, goroutine worker pool, pprof profiling | ✅ Done |
 | 4. Validate against SOCRATES: what % of their close approaches do we find? | ☐ |
 | 5. Final numbers: full catalog over 7 days in ___ min, ___% SOCRATES match, ___× speedup | ☐ |
 | ➕ Live tracker: every satellite moving on a world map in the browser | ✅ Done |
@@ -34,14 +34,16 @@ All 7 verification cases that are *supposed* to fail (decayed satellites, imposs
 
 **SGP4 speed** (Apple M4, one core): **~0.2 µs** per position for a low-Earth orbit, **~0.5 µs** for a deep-space orbit, zero heap allocations.
 
-**Brute-force screening, the "before" number** (details in [docs/05-screening.md](docs/05-screening.md)). Apple M4, one core, 20,489 objects, 10 s steps, 5 km threshold:
+**Screening speed** (details in [docs/07-optimisation.md](docs/07-optimisation.md)). Apple M4, 20,481 objects, 10 s steps, 5 km threshold. Every method finds exactly the same conjunctions:
 
-| Window | Time | Pair checks | Conjunctions < 5 km |
+| Method | Cores | 1-hour window | 7-day window |
 |---|---|---|---|
-| 1 hour | 1 min 37 s | 75.8 billion | 2,691 |
-| 7 days (projected) | ~4.5 hours | ~12.7 trillion | |
+| Brute force (baseline) | 1 | 92.5 s | ~4.3 h (projected) |
+| Altitude filter | 1 | 88.5 s | |
+| Spatial grid | 1 | 5.5 s | |
+| **Spatial grid** | **10** | **1.15 s** | **3 min 3 s** |
 
-Time grows as N²: doubling the catalog makes each step ~4× slower.
+**Full catalog over 7 days in 3 minutes, ~85× faster than brute force.**
 
 ## How it works
 
@@ -53,9 +55,10 @@ Start with the docs. They are written to be read in order, and they assume no or
 4. [The catalog](docs/04-catalog.md). Where the data comes from, why we fetch OMM instead of TLEs, and the cleanup it needs (duplicates, docked objects).
 5. [Screening](docs/05-screening.md). How close approaches are found without missing any, why SGP4's velocity can't be trusted for this, and the brute-force baseline.
 6. [The live tracker](docs/06-live-tracker.md). Turning SGP4 positions into latitude and longitude, and drawing 20,000 objects on a map every second.
-7. [Glossary](docs/glossary.md). Every term of art used in the code and docs.
+7. [Optimisation](docs/07-optimisation.md). Altitude filter, spatial grid and parallel workers: what each bought, and what the profiler says is left.
+8. [Glossary](docs/glossary.md). Every term of art used in the code and docs.
 
-More chapters arrive with each milestone: optimisations, SOCRATES validation.
+More chapters arrive with each milestone: SOCRATES validation next.
 
 ## Repository layout
 
@@ -82,7 +85,8 @@ go test ./...                       # all tests, including the Vallado verificat
 go test ./internal/sgp4 -bench .    # propagation speed
 
 go run ./cmd/fetch                  # download today's data into data/ (reused for 2 hours)
-go run ./cmd/screen -max-steps 60   # time the first 10 minutes, project the full 7 days
+go run ./cmd/screen                 # full 7-day screen: spatial grid on all cores (~3 min)
+go run ./cmd/screen -method brute -workers 1 -max-steps 60   # baseline: time 10 minutes, project 7 days
 go run ./cmd/screen -days 0.0417 -out conj.csv   # a real 1-hour screen, results to CSV
 go run ./cmd/screen -primary-only   # SOCRATES-style: active payloads vs everything
 go run ./cmd/track                  # live map at http://localhost:8080

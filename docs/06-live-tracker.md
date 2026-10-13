@@ -83,4 +83,4 @@ Three details took some care:
 - that the ground track's "now" point matches the current position;
 - unknown IDs return 404.
 
-← [5. Screening](05-screening.md) · [Glossary](glossary.md)
+← [5. Screening](05-screening.md) · [7. Optimisation →](07-optimisation.md)

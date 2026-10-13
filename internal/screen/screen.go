@@ -38,6 +38,9 @@ type Config struct {
 	// MaxSteps, if > 0, stops after this many intervals. Used to time a
 	// sample of a run that would take hours.
 	MaxSteps int
+
+	// Workers is how many goroutines share the work; 0 or 1 means one.
+	Workers int
 }
 
 // Conjunction is one close approach.

@@ -16,3 +16,4 @@ __pycache__/
 
 # Downloaded orbit data (cmd/fetch)
 /data/
+/runs/

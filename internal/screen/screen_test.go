@@ -2,6 +2,7 @@ package screen
 
 import (
 	"math"
+	"math/rand/v2"
 	"os"
 	"strconv"
 	"strings"
@@ -242,4 +243,59 @@ func TestChordBound(t *testing.T) {
 		}
 	}
 	t.Logf("worst gap is %.0f%% of the bound", 100*worst)
+}
+
+// randomCatalog makes n objects in crowded low orbits (480-560 km, like the
+// Starlink shells) plus a few in GEO, from a fixed seed.
+func randomCatalog(t testing.TB, n int) []*catalog.Object {
+	rng := rand.New(rand.NewPCG(7, 11))
+	var objs []*catalog.Object
+	for id := 1; id <= n; id++ {
+		mm := 15.05 + rng.Float64()*0.35 // ~480-560 km
+		incl := []float64{43, 53, 70, 97.6}[rng.IntN(4)] + rng.Float64()
+		if id%50 == 0 {
+			mm, incl = 1.0027, rng.Float64()*0.1 // GEO
+		}
+		el := &tle.TLE{CatalogNum: id, Epoch: epoch, Inclination: incl, RAAN: rng.Float64() * 360,
+			Eccentricity: 0.0001 + rng.Float64()*0.002, ArgPerigee: rng.Float64() * 360,
+			MeanAnomaly: rng.Float64() * 360, MeanMotion: mm, BStar: 0.0001}
+		sat, err := sgp4.New(el)
+		if err != nil {
+			t.Fatal(err)
+		}
+		objs = append(objs, &catalog.Object{ID: id, Elems: el, Sat: sat, Primary: id%3 == 0})
+	}
+	return objs
+}
+
+// Every method and worker count must give exactly the brute-force answer.
+func TestMethodsAgree(t *testing.T) {
+	objs := randomCatalog(t, 300)
+	for _, primaryOnly := range []bool{false, true} {
+		cfg := Config{Start: epoch, Duration: 3 * time.Hour, Step: 10 * time.Second, Threshold: 50, PrimaryOnly: primaryOnly} // 50 km: more encounters to compare
+		want, _ := BruteForce(objs, cfg)
+		if len(want) < 20 {
+			t.Fatalf("test setup: only %d conjunctions", len(want))
+		}
+		for _, m := range []Method{Brute, Altitude, Grid} {
+			for _, w := range []int{1, 4} {
+				cfg.Workers = w
+				got, st := Screen(objs, cfg, m)
+				if len(got) != len(want) {
+					t.Errorf("%v/%d workers/primaryOnly=%v: %d conjunctions, brute force %d", m, w, primaryOnly, len(got), len(want))
+					continue
+				}
+				for k := range got {
+					g, b := got[k], want[k]
+					if g.A != b.A || g.B != b.B || !g.TCA.Equal(b.TCA) || g.MissKm != b.MissKm {
+						t.Errorf("%v/%d: #%d = %d-%d %v %.6f, brute %d-%d %v %.6f", m, w, k, g.A.ID, g.B.ID, g.TCA, g.MissKm, b.A.ID, b.B.ID, b.TCA, b.MissKm)
+						break
+					}
+				}
+				if w == 1 && !primaryOnly {
+					t.Logf("%-8v %3d conjunctions, %9d pair checks", m, len(got), st.PairChecks)
+				}
+			}
+		}
+	}
 }

@@ -18,7 +18,9 @@ import (
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/pprof"
+	"sort"
 	"strconv"
 	"time"
 
@@ -38,7 +40,13 @@ func main() {
 	sample := flag.Int("sample", 0, "screen a random subset of this many objects (for scaling tests)")
 	out := flag.String("out", "", "write conjunctions to this CSV file")
 	cpuProfile := flag.String("cpuprofile", "", "write a CPU profile here")
+	method := flag.String("method", "grid", "pair search: brute, altitude or grid")
+	workers := flag.Int("workers", runtime.NumCPU(), "goroutines to use (1 = single core)")
 	flag.Parse()
+	m := map[string]screen.Method{"brute": screen.Brute, "altitude": screen.Altitude, "grid": screen.Grid}[*method]
+	if _, ok := map[string]bool{"brute": true, "altitude": true, "grid": true}[*method]; !ok {
+		log.Fatalf("-method must be brute, altitude or grid")
+	}
 
 	start := time.Now().UTC().Truncate(time.Minute)
 	if *startStr != "" {
@@ -81,6 +89,7 @@ func main() {
 		Threshold:   *threshold,
 		PrimaryOnly: *primaryOnly,
 		MaxSteps:    *maxSteps,
+		Workers:     *workers,
 	}
 	totalSteps := int(math.Ceil(cfg.Duration.Seconds() / cfg.Step.Seconds()))
 
@@ -93,11 +102,11 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	conj, ss := screen.BruteForce(objs, cfg)
+	conj, ss := screen.Screen(objs, cfg, m)
 
 	perStep := ss.Elapsed / time.Duration(ss.Steps)
-	fmt.Printf("\nbrute force: %d objects, %d of %d steps of %v, window from %s\n",
-		len(objs), ss.Steps, totalSteps, cfg.Step, start.Format(time.RFC3339))
+	fmt.Printf("\n%s, %d workers: %d objects, %d of %d steps of %v, window from %s\n",
+		m, *workers, len(objs), ss.Steps, totalSteps, cfg.Step, start.Format(time.RFC3339))
 	fmt.Printf("  time            %v  (%v per step)\n", ss.Elapsed.Round(time.Millisecond), perStep.Round(time.Microsecond))
 	if ss.Steps < totalSteps {
 		proj := perStep * time.Duration(totalSteps)
@@ -129,11 +138,7 @@ func main() {
 }
 
 func sortByMiss(cs []screen.Conjunction) {
-	for i := 1; i < len(cs); i++ {
-		for j := i; j > 0 && cs[j].MissKm < cs[j-1].MissKm; j-- {
-			cs[j], cs[j-1] = cs[j-1], cs[j]
-		}
-	}
+	sort.Slice(cs, func(i, j int) bool { return cs[i].MissKm < cs[j].MissKm })
 }
 
 func writeCSV(path string, cs []screen.Conjunction) error {
