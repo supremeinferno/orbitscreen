@@ -268,6 +268,27 @@ func randomCatalog(t testing.TB, n int) []*catalog.Object {
 	return objs
 }
 
+// A diverged SGP4 sample (here 60,000 km in 10 s, as for decaying CZ-6A
+// debris days past epoch) must not inflate the coarse bound.
+func TestDivergedObjectNotLive(t *testing.T) {
+	prev, cur := newStates(3), newStates(3)
+	for i := range 3 {
+		prev.ok[i], cur.ok[i] = true, true
+		prev.x[i] = 7000
+	}
+	cur.x[0] = 7000 + 75    // 7.5 km/s: a normal LEO object
+	cur.x[1] = 7000 + 60000 // 6,000 km/s
+	cur.ok[2] = false       // SGP4 error
+	live := make([]bool, 3)
+	v := liveSpeed(prev, cur, live, 10)
+	if !live[0] || live[1] || live[2] {
+		t.Errorf("live = %v, want [true false false]", live)
+	}
+	if math.Abs(v-7.5) > 1e-9 {
+		t.Errorf("speed = %g km/s, want 7.5", v)
+	}
+}
+
 // Every method and worker count must give exactly the brute-force answer.
 func TestMethodsAgree(t *testing.T) {
 	objs := randomCatalog(t, 300)

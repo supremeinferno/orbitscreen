@@ -73,6 +73,13 @@ type Stats struct {
 // minutes from re-entry. See docs/05-screening.md.
 const aObj = 0.0100
 
+// vEscape is Earth's escape speed at its surface, km/s. Nothing in orbit
+// can move faster. SGP4 can: a decaying object's elements sometimes blow
+// up days past epoch, flinging it out at thousands of km/s with no error.
+// A sample like that is meaningless, and since the coarse bound uses the
+// fastest object, one such object would make every pair pass it.
+const vEscape = 11.2
+
 // Bounds holds the per-step distances used to rule pairs out.
 //
 // The screeners only use sampled positions, never SGP4's velocity output:
@@ -161,17 +168,24 @@ func (r *run) sample(k int, s *states) {
 }
 
 // liveSpeed marks in live the objects that propagated at both ends of the
-// interval from prev to cur, and returns the largest distance any of them
-// moved divided by dt: the speed used in the coarse bound.
+// interval from prev to cur, without moving faster than vEscape, and
+// returns the largest distance any of them moved divided by dt: the speed
+// used in the coarse bound.
 func liveSpeed(prev, cur *states, live []bool, dt float64) float64 {
 	var m float64
+	limSq := vEscape * dt * vEscape * dt
 	for i := range live {
 		live[i] = prev.ok[i] && cur.ok[i]
 		if !live[i] {
 			continue
 		}
 		dx, dy, dz := cur.x[i]-prev.x[i], cur.y[i]-prev.y[i], cur.z[i]-prev.z[i]
-		m = math.Max(m, dx*dx+dy*dy+dz*dz)
+		d := dx*dx + dy*dy + dz*dz
+		if d > limSq {
+			live[i] = false
+			continue
+		}
+		m = math.Max(m, d)
 	}
 	return math.Sqrt(m) / dt
 }
