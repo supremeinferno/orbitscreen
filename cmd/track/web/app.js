@@ -21,7 +21,7 @@ let pos = null;          // Float32Array of lat, lon, alt triples
 let land = null;         // GeoJSON land polygons
 let base = null;         // offscreen canvas: ocean, graticule, land
 let selected = null;     // catalog index
-let info = null;         // /api/object response for the selected object
+let info = null;         // api.object() result for the selected object
 let dirty = true;
 let lastFetchMs = 0;
 
@@ -212,10 +212,7 @@ function frame() {
 async function fetchPositions() {
   try {
     const t0 = performance.now();
-    const res = await fetch(`/api/positions?t=${Math.round(simNow())}`);
-    // The server sends little-endian float32s; every mainstream browser
-    // runs on little-endian hardware, so the bytes can be used directly.
-    pos = new Float32Array(await res.arrayBuffer());
+    pos = await api.positions(Math.round(simNow()));
     lastFetchMs = performance.now() - t0;
     dirty = true;
     updateMeta();
@@ -228,9 +225,9 @@ async function fetchPositions() {
 async function fetchInfo() {
   if (selected === null) return;
   const id = catalog[selected].id;
-  const res = await fetch(`/api/object?id=${id}&t=${Math.round(simNow())}`);
-  if (!res.ok || selected === null || catalog[selected].id !== id) return;
-  info = await res.json();
+  const next = await api.object(id, Math.round(simNow()));
+  if (!next || selected === null || catalog[selected].id !== id) return;
+  info = next;
   renderPanel();
   dirty = true;
 }
@@ -283,7 +280,7 @@ function updateMeta() {
     if (showKind.has(catalog[i].kind)) shown++;
   }
   for (const k of Object.keys(KINDS)) $('count-' + k).textContent = fmt(counts[k] || 0);
-  $('meta').textContent = `${fmt(shown)} of ${fmt(catalog.length)} objects shown · positions computed and sent in ${fmt(lastFetchMs)} ms`;
+  $('meta').textContent = `${fmt(shown)} of ${fmt(catalog.length)} objects shown · positions computed ${api.how} in ${fmt(lastFetchMs)} ms`;
 }
 
 // ---- interaction ----
@@ -386,7 +383,7 @@ async function start() {
   resize();
   window.addEventListener('resize', resize);
   buildFilters();
-  catalog = await (await fetch('/api/catalog')).json();
+  catalog = await api.catalog();
   byKind = Object.fromEntries(Object.keys(KINDS).map((k) => [k, []]));
   catalog.forEach((c, i) => byKind[c.kind].push(i));
   requestAnimationFrame(frame);
