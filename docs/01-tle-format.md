@@ -1,6 +1,6 @@
 # 1. TLEs: the input data
 
-Everything this project does starts from **Two-Line Element sets (TLEs)**. A TLE is a compact text description of one object's orbit at one moment in time. This chapter explains what is in a TLE, where it comes from, and how [`internal/tle`](../internal/tle/tle.go) parses it.
+Everything this project does starts from **Two-Line Element sets (TLEs)**. A TLE is a compact text description of one object's orbit at one moment in time. This chapter explains what is in a TLE, where it comes from, and how [`pkg/tle`](../pkg/tle/tle.go) parses it.
 
 ## Where TLEs come from
 
@@ -99,7 +99,7 @@ Catalog numbers only have five columns, and the catalog is heading past 99,999. 
 
 ## Tests
 
-[`tle_test.go`](../internal/tle/tle_test.go) checks:
+[`tle_test.go`](../pkg/tle/tle_test.go) checks:
 
 - every field of the ISS TLE above;
 - checksum computation;

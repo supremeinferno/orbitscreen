@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 // Conjunction is one row of a SOCRATES Plus CSV file.

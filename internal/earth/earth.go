@@ -7,7 +7,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/supremeinferno/orbitscreen/internal/sgp4"
+	"github.com/supremeinferno/orbitscreen/pkg/sgp4"
 )
 
 // WGS-84 ellipsoid, the one GPS and maps use. (SGP4 itself uses WGS-72

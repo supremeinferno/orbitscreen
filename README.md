@@ -85,8 +85,8 @@ Start with the docs. They are written to be read in order, and they assume no or
 ## Repository layout
 
 ```
-internal/tle/        TLE and OMM CSV parsers
-internal/sgp4/       SGP4/SDP4 propagator, a port of Vallado's 2020 reference code
+pkg/tle/             TLE and OMM CSV parsers (importable by other Go modules)
+pkg/sgp4/            SGP4/SDP4 propagator, a port of Vallado's 2020 reference code (importable)
   testdata/          Vallado's verification TLEs and expected output
 internal/catalog/    Loads data files: dedup, primaries, docked-object groups
 internal/screen/     Close-approach screening: bounds, refinement, brute force, grid
@@ -109,7 +109,7 @@ Needs Go 1.26+.
 
 ```sh
 go test ./...                       # all tests, including the Vallado verification
-go test ./internal/sgp4 -bench .    # propagation speed
+go test ./pkg/sgp4 -bench .    # propagation speed
 
 go run ./cmd/fetch                  # download today's data into data/ (reused for 2 hours)
 go run ./cmd/screen                 # full 7-day screen: spatial grid on all cores (~3 min)
@@ -165,4 +165,4 @@ Each of these was measured during the project, not just assumed:
 
 ## License
 
-[MIT](LICENSE). The SGP4 propagator is a port of David Vallado's reference code, and `internal/sgp4/testdata` holds his verification files, both as published with *Revisiting Spacetrack Report #3*. Orbit data comes from CelesTrak and Space-Track under their own terms and isn't part of this repository.
+[MIT](LICENSE). The SGP4 propagator is a port of David Vallado's reference code, and `pkg/sgp4/testdata` holds his verification files, both as published with *Revisiting Spacetrack Report #3*. Orbit data comes from CelesTrak and Space-Track under their own terms and isn't part of this repository.

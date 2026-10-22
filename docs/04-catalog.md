@@ -37,7 +37,7 @@ The TLE format has a hard limit: **five columns for the catalog number**. The Al
 
 You can see this directly. On the same day, CelesTrak's active group had **15,939** objects in TLE format and **16,700** in OMM CSV. The 761-object difference is the newest satellites, which a TLE-only screener would silently miss.
 
-So `cmd/fetch` downloads CSV, and [`tle.ReadOMMCSV`](../internal/tle/omm.go) parses it into the same `TLE` struct the TLE parser fills. SGP4 can't tell which format the elements came from. The reader finds columns by header name, so it also accepts Space-Track's CSV, which has many more columns in a different order. One small bonus: OMM gives B\* to full precision (`.35967262E-4`), where a TLE gives five digits (`35967-4`).
+So `cmd/fetch` downloads CSV, and [`tle.ReadOMMCSV`](../pkg/tle/omm.go) parses it into the same `TLE` struct the TLE parser fills. SGP4 can't tell which format the elements came from. The reader finds columns by header name, so it also accepts Space-Track's CSV, which has many more columns in a different order. One small bonus: OMM gives B\* to full precision (`.35967262E-4`), where a TLE gives five digits (`35967-4`).
 
 ## Loading: `catalog.Load`
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/supremeinferno/orbitscreen/internal/catalog"
 	"github.com/supremeinferno/orbitscreen/internal/screen"
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 const sample = `NORAD_CAT_ID_1,OBJECT_NAME_1,DSE_1,NORAD_CAT_ID_2,OBJECT_NAME_2,DSE_2,TCA,TCA_RANGE,TCA_RELATIVE_SPEED,MAX_PROB,DILUTION

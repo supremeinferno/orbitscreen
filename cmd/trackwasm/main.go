@@ -25,7 +25,7 @@ import (
 
 	"github.com/supremeinferno/orbitscreen/internal/catalog"
 	"github.com/supremeinferno/orbitscreen/internal/live"
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 var tracker *live.Tracker

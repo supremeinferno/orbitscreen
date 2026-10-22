@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/supremeinferno/orbitscreen/internal/catalog"
-	"github.com/supremeinferno/orbitscreen/internal/sgp4"
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/sgp4"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 var epoch = time.Date(2026, 10, 12, 0, 0, 0, 0, time.UTC)
@@ -131,7 +131,7 @@ func TestBruteForceFindsSyntheticEncounters(t *testing.T) {
 // and fixed first, as in the sgp4 tests.
 func verificationObjects(t *testing.T) []*catalog.Object {
 	t.Helper()
-	data, err := os.ReadFile("../sgp4/testdata/SGP4-VER.TLE")
+	data, err := os.ReadFile("../../pkg/sgp4/testdata/SGP4-VER.TLE")
 	if err != nil {
 		t.Fatal(err)
 	}

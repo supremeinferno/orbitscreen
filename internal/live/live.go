@@ -12,7 +12,7 @@ import (
 
 	"github.com/supremeinferno/orbitscreen/internal/catalog"
 	"github.com/supremeinferno/orbitscreen/internal/earth"
-	"github.com/supremeinferno/orbitscreen/internal/sgp4"
+	"github.com/supremeinferno/orbitscreen/pkg/sgp4"
 )
 
 // Tracker holds a loaded catalog.

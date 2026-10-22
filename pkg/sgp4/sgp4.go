@@ -22,7 +22,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 // EarthRadiusKm is the WGS-72 equatorial radius SGP4 uses; it also defines
