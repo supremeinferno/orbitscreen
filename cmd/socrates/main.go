@@ -29,7 +29,7 @@ import (
 	"github.com/supremeinferno/orbitscreen/internal/catalog"
 	"github.com/supremeinferno/orbitscreen/internal/screen"
 	"github.com/supremeinferno/orbitscreen/internal/socrates"
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 // activeStatus are CelesTrak ops-status codes SOCRATES treats as active.

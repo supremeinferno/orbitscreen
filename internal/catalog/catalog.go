@@ -12,8 +12,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/supremeinferno/orbitscreen/internal/sgp4"
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/sgp4"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 // Object is one catalogued object, initialised for propagation.

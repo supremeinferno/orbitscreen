@@ -14,8 +14,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/supremeinferno/orbitscreen/internal/sgp4"
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/sgp4"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 func main() {

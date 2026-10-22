@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/supremeinferno/orbitscreen/internal/sgp4"
+	"github.com/supremeinferno/orbitscreen/pkg/sgp4"
 )
 
 func TestGMST(t *testing.T) {

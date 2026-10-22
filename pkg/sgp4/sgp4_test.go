@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/supremeinferno/orbitscreen/internal/tle"
+	"github.com/supremeinferno/orbitscreen/pkg/tle"
 )
 
 // The verification set from Vallado et al., "Revisiting Spacetrack Report
