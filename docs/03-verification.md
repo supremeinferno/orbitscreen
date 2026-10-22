@@ -9,7 +9,7 @@ There are two independent checks:
 
 ## Check 1: Vallado's verification set
 
-Vallado's paper ships a test file, [`SGP4-VER.TLE`](../internal/sgp4/testdata/SGP4-VER.TLE), with 33 TLEs. Each one was chosen to exercise a specific branch or historical bug:
+Vallado's paper ships a test file, [`SGP4-VER.TLE`](../pkg/sgp4/testdata/SGP4-VER.TLE), with 33 TLEs. Each one was chosen to exercise a specific branch or historical bug:
 
 | Kind of case | Examples |
 |---|---|
@@ -22,11 +22,11 @@ Vallado's paper ships a test file, [`SGP4-VER.TLE`](../internal/sgp4/testdata/SG
 | Propagating backwards in time | SMS 1 AKM, 4632 |
 | Decay and deliberate error cases | MINOTAUR R/B, SL-14 DEB, cases 33333–33335 |
 
-Each line 2 carries extra columns: start, stop and step times. The expected output, [`tcppver.out`](../internal/sgp4/testdata/tcppver.out), lists position and velocity at every step, as computed by Vallado's C++ code.
+Each line 2 carries extra columns: start, stop and step times. The expected output, [`tcppver.out`](../pkg/sgp4/testdata/tcppver.out), lists position and velocity at every step, as computed by Vallado's C++ code.
 
 ### How the test works
 
-`TestVallado` in [`sgp4_test.go`](../internal/sgp4/sgp4_test.go):
+`TestVallado` in [`sgp4_test.go`](../pkg/sgp4/sgp4_test.go):
 
 1. Reproduces the exact time steps of Vallado's test driver (`driverTimes`): `t = 0`, then start to stop in steps, with the last step clamped to `stop`.
 2. Propagates each satellite at each step and compares the result with the matching row of `tcppver.out`.
@@ -96,7 +96,7 @@ To reproduce, see [Running it](../README.md#running-it) in the README.
 
 ## Speed
 
-`go test ./internal/sgp4 -bench .`:
+`go test ./pkg/sgp4 -bench .`:
 
 ```
 BenchmarkPropagateNearEarth    217 ns/op    0 B/op    0 allocs/op

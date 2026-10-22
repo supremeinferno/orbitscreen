@@ -6,7 +6,7 @@ name: site
 on:
   push:
     branches: [main]
-    paths: ['cmd/fetch/**', 'cmd/track/**', 'cmd/trackwasm/**', 'internal/**', 'site/**', '.github/workflows/site.yml']
+    paths: ['cmd/fetch/**', 'cmd/track/**', 'cmd/trackwasm/**', 'internal/**', 'pkg/**', 'site/**', '.github/workflows/site.yml']
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
