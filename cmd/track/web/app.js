@@ -327,6 +327,7 @@ function renderPanel() {
       <dt>Inclination</dt><dd>${fmt(info.inclination, 2)}°</dd>
       <dt>Elements age</dt><dd>${ageH >= 0 ? fmt(ageH, 1) + ' h' : 'in the future'}</dd>
     </dl>`}
+    ${info.error ? '' : batterySection(c.id, info, simNow(), subsolar)}
     ${c.attached ? '<p class="note">Docked to another catalogued object (same orbit data).</p>' : ''}
     <p class="note">${view === '3d' ? 'Orbit' : 'Ground track'}: faint behind, bright ahead.${view === '3d' ? '' : ' Circle: where it is above the horizon.'}</p>`;
   $('panel').querySelector('.close').onclick = () => select(null);
@@ -588,6 +589,11 @@ async function start() {
   }
   byKind = Object.fromEntries(Object.keys(KINDS).map((k) => [k, []]));
   catalog.forEach((c, i) => { byKind[c.kind].push(i); indexOf.set(c.id, i); });
+  // Battery status of a few satellites, from satnogs-pipeline (battery.js); the
+  // tracker works the same without it.
+  const refreshBattery = () => loadBatteryStatus().then((ok) => { if (ok && selected !== null) renderPanel(); });
+  refreshBattery();
+  setInterval(refreshBattery, 10 * 60 * 1000);
   approaches = await api.closest().catch(() => null);
   if (approaches && approaches.approaches.length) {
     $('tab-approaches').hidden = false;

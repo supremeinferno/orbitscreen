@@ -105,6 +105,14 @@ Three details took some care:
 - **Night.** The Sun's position comes from the Astronomical Almanac's low-precision formula (good to ~0.01°). The *terminator*, where the Sun is on the horizon, is at latitude atan(−cos(Δlon) / tan(δ☉)) for each longitude, where δ☉ is the Sun's declination. Everything between that curve and the pole facing away from the Sun is shaded.
 - **Footprints.** An object at altitude *h* is above the horizon within an angular radius ρ = arccos(R / (R + h)) of its ground point. That's ~20° for the ISS and ~81° for GEO. The circle is computed with spherical trigonometry and looks stretched on the map, because equirectangular stretches everything away from the equator.
 
+## Battery status from satnogs-pipeline
+
+Four small satellites in the catalog (UWE-4, CatSat, SNUGLITE, Sharjahsat-1) are also followed by [satnogs-pipeline](https://github.com/supremeinferno/satnogs-pipeline), a separate project that collects their radio beacons from volunteer ground stations, decodes the battery voltage, and checks it. That project publishes `status.json` on GitHub Pages every hour, and `cmd/track/web/battery.js` reads it. When one of the four is selected, the panel gets a Battery section: the latest voltage (and current, where it is known) of each battery, how long ago the satellite last sent a beacon, and any alert.
+
+The one thing computed here, not read from the file, is the lighting. A battery is meant to discharge in the Earth's shadow, so whether the satellite is in the shadow matters. `inEarthShadow` takes the satellite's latitude, longitude and altitude (already in the panel) and the point below the Sun (`subsolar`, already used to shade the night side), turns them into Earth-fixed vectors, and tests the shadow cylinder: the satellite is behind the Earth, and closer to the Sun-Earth line than the Earth's radius. Because it uses the simulation clock, moving the time moves the shadow. It is the same cylinder model satnogs-pipeline uses; the real shadow is a cone with a penumbra, which matters only for the seconds around entering or leaving it.
+
+The tracker works without it: if the file cannot be loaded the panel simply has no Battery section. The file is read from another site, which GitHub Pages allows (`access-control-allow-origin: *`). It is at most an hour old, and the section says how old. Its tests (`site/test/battery.test.js`, run in CI with `node --test`) cover the shadow geometry with cases checked by hand (a satellite over the Sun, behind the Earth, over the pole on the night side, in geostationary orbit) and the HTML of the section; breaking the comparison in `inEarthShadow` makes five of them fail.
+
 ## Tests
 
 [`cmd/track/main_test.go`](../cmd/track/main_test.go) runs the HTTP API against a three-object catalog (the ISS, a piece of Cosmos 2251 debris, GOES 16). It checks:
