@@ -177,9 +177,18 @@ dialog form { margin: 0 0 0 auto; }
   :root { --gap: 8px; }
   .bar { grid-template-areas: "left tools" "play play" "search search"; }
   .playback .seg .btn { padding: 0 7px; }
+  .left { flex-direction: column; align-items: flex-start; gap: 2px; } /* the clock under the name, clear of Globe/Map */
+  #simtime { font-size: 12px; }
   .side, .panel { top: auto; bottom: var(--gap); left: var(--gap); right: var(--gap); width: auto; max-height: 46vh; }
   .open-side { top: auto; bottom: var(--gap); }
   body:has(#panel:not([hidden])) .side, body:has(#panel:not([hidden])) .open-side { display: none; }
   .status { display: none; }
   dialog form { margin-left: 0; }
+}
+@media (max-width: 380px) {
+  /* even stacked, the clock reaches the Globe/Map buttons: give it a row */
+  .bar { grid-template-areas: "left tools" "time time" "play play" "search search"; }
+  .left { display: contents; }
+  .brand { grid-area: left; align-self: center; }
+  #simtime { grid-area: time; }
 }
