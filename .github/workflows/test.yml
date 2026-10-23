@@ -26,5 +26,7 @@ jobs:
       - run: GOOS=js GOARCH=wasm go build -o /dev/null ./cmd/trackwasm
       - name: JavaScript syntax
         run: |
-          for f in cmd/track/web/app.js cmd/track/web/api.js site/api.js; do node --check "$f"; done
+          for f in cmd/track/web/app.js cmd/track/web/api.js cmd/track/web/battery.js site/api.js; do node --check "$f"; done
           cp cmd/track/web/globe.js "$RUNNER_TEMP/globe.mjs" && node --check "$RUNNER_TEMP/globe.mjs"
+      - name: JavaScript tests
+        run: node --test site/test/battery.test.js

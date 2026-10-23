@@ -40,7 +40,15 @@ jobs:
         with:
           path: data
           key: celestrak-${{ steps.slot.outputs.slot }}
-      - run: go run ./cmd/fetch
+      # CelesTrak answers 403 to GitHub's servers at times. Then the site is
+      # rebuilt with the data it published last time (site/reuse-data.sh), so the
+      # code still deploys; a warning says so.
+      - name: Fetch the orbit data, or reuse the last published copy
+        run: |
+          if ! go run ./cmd/fetch; then
+            echo "::warning::CelesTrak refused the request; rebuilding with the data this site published last time"
+            site/reuse-data.sh data
+          fi
       - run: site/build.sh
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

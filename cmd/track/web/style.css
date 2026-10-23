@@ -127,6 +127,11 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
 .panel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .panel .close { position: absolute; top: 10px; right: 10px; }
 .panel .note { color: var(--faint); font-size: 12px; margin: 12px 0 0; line-height: 1.4; }
+.panel .batt { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border); }
+.panel .batt h3 { margin: 0 0 8px; font-size: 13px; font-weight: 650; }
+.panel .batt .alert { color: var(--danger); font-weight: 600; }
+.panel .batt .note { margin-top: 8px; }
+.panel .batt a { color: var(--accent); }
 .pair { margin: 0 0 12px; padding: 9px 11px; border-radius: 9px; background: rgba(239, 71, 111, 0.1); border: 1px solid rgba(239, 71, 111, 0.3); line-height: 1.45; }
 .pair strong { color: #ff8fa8; font-weight: 600; }
 .pair .countdown { display: block; margin-top: 2px; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }

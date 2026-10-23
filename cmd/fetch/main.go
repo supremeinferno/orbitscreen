@@ -74,11 +74,21 @@ func main() {
 	}
 }
 
+// userAgent is sent with every request.
+const userAgent = "orbitscreen (github.com/supremeinferno/orbitscreen; learning project)"
+
 // download writes url to path via a temp file, so an interrupted download
 // never leaves a truncated file that looks fresh. It returns the number of
 // data rows.
 func download(c *http.Client, url, path string) (int, error) {
-	resp, err := c.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return 0, err
+	}
+	// Say who is asking: the default Go client identifies itself only as
+	// "Go-http-client", which servers tend to refuse from cloud addresses.
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := c.Do(req)
 	if err != nil {
 		return 0, err
 	}

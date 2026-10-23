@@ -4,7 +4,7 @@
 
 `orbitscreen` is a conjunction screener written in Go from scratch, with no orbital-mechanics dependencies. It reads the public satellite catalog, predicts where every object will be over the next 7 days, and finds every pair that comes within a few kilometres of each other. Then it checks its answers against [CelesTrak SOCRATES](https://celestrak.org/SOCRATES/), the public reference service for this job.
 
-It also includes a **live tracker** that draws every object in the catalog moving on a world map. **Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**. It runs the project's own Go SGP4 in your browser, compiled to WebAssembly, and lists the closest approaches of the next 24 hours from the project's screener.
+It also includes a **live tracker** that draws every object in the catalog moving on a world map. **Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**. It runs the project's own Go SGP4 in your browser, compiled to WebAssembly, and lists the closest approaches of the next 24 hours from the project's screener. Select UWE-4, CatSat, SNUGLITE or Sharjahsat-1 and the panel also shows their battery, from [satnogs-pipeline](https://github.com/supremeinferno/satnogs-pipeline) (see [chapter 6](docs/06-live-tracker.md#battery-status-from-satnogs-pipeline)).
 
 ![Live tracker: ~21,000 objects around a 3D Earth, the ISS selected with its orbit, and the next day's closest approaches](docs/img/tracker.jpg)
 
@@ -99,6 +99,7 @@ cmd/track/           Live tracker: web server + embedded map page
 cmd/socrates/        Screens as a SOCRATES run did and reports recall
 cmd/trackwasm/       The tracker's engine compiled to WebAssembly, for the public site
 site/                Builds the public site (GitHub Pages, refreshed every 6 hours)
+  test/              Tests of the tracker's battery panel (node --test)
 cmd/crosscheck/      Dumps positions for a whole catalog + Python script to compare with python-sgp4
 docs/                The explanations above
 ```
