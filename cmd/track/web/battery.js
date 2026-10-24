@@ -95,7 +95,7 @@ function batterySection(norad, info, nowMs, sunAt, realNowMs = Date.now()) {
   if (!fired) rows.push(`<dt>Alerts</dt><dd>${sat.stale ? 'no recent beacons' : 'none firing'}</dd>`);
   const snap = batteryAgo(realNowMs - batteryStatus.generatedAt);
   return `<div class="batt"><h3>Battery</h3><dl>${rows.join('')}</dl>
-    <p class="note">Beacons heard by volunteer ground stations; snapshot from ${snap}. <a href="${BATTERY_PAGE_URL}" target="_blank" rel="noopener">Full history</a></p></div>`;
+    <p class="note">Beacons heard by volunteer ground stations; snapshot from ${snap}. <a href="${BATTERY_PAGE_URL}" target="_blank" rel="noopener">Charts and all five on the battery page</a></p></div>`;
 }
 
 // For the tests, which run under Node.
