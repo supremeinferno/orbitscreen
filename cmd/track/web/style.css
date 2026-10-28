@@ -192,3 +192,11 @@ dialog form { margin: 0 0 0 auto; }
   .brand { grid-area: left; align-self: center; }
   #simtime { grid-area: time; }
 }
+
+/* the badge by the clock: live or not */
+.timemode { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; vertical-align: 1px; }
+.timemode.live { color: #3ddc97; background: rgba(61, 220, 151, .13); }
+.timemode.live::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #3ddc97; vertical-align: 1px; animation: livepulse 2s infinite; }
+@keyframes livepulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .timemode.live::before { animation: none; } }
+.timemode.off { color: #ffb454; background: rgba(255, 180, 84, .14); }

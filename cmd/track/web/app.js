@@ -233,8 +233,30 @@ function draw() {
 
 const clock = (ms) => new Date(ms).toISOString().slice(11, 19);
 
+// The badge by the clock says whether it shows the real time: LIVE, PAUSED,
+// a faster speed, or how far from now it is (after a click on an approach,
+// the clock jumps to a minute before it, often hours ahead).
+let lastMode = '';
+function showTimeMode() {
+  const d = simNow() - Date.now(), a = Math.abs(d);
+  let text, cls;
+  if (speed === 0) { text = 'PAUSED'; cls = 'off'; }
+  else if (a < 5000) { text = speed === 1 ? 'LIVE' : `${speed}×`; cls = speed === 1 ? 'live' : 'off'; }
+  else {
+    const m = Math.round(a / 60000), h = Math.floor(m / 60);
+    text = `${d > 0 ? '+' : '−'}${h ? `${h} h ${String(m % 60).padStart(2, '0')} min` : `${Math.max(1, m)} min`}${speed === 1 ? '' : ` · ${speed}×`}`;
+    cls = 'off';
+  }
+  if (text + cls === lastMode) return;
+  lastMode = text + cls;
+  const el = $('timemode');
+  el.textContent = text; el.className = 'timemode ' + cls;
+  el.title = cls === 'live' ? 'The real time now' : 'Not the real time now. "Now" goes back to it.';
+}
+
 function frame() {
-  $('simtime').textContent = new Date(simNow()).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  $('simclock').textContent = new Date(simNow()).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  showTimeMode();
   const cd = pair && $('countdown');
   if (cd) {
     const s = Math.round((Date.parse(pair.c.tca) - simNow()) / 1000);
@@ -579,7 +601,8 @@ document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('clic
 document.addEventListener('keydown', (e) => {
   if (e.target.closest('input') || $('about').open) return;
   if (e.key === '/') { e.preventDefault(); $('q').focus(); }
-  else if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); togglePause(); }
+  // Space pauses, also when an approach in the list has the focus (it would click it again and jump the clock back)
+  else if (e.key === ' ' && (!e.target.closest('button') || e.target.closest('#approaches'))) { e.preventDefault(); togglePause(); }
   else if (e.key === 'Escape') { if (selected !== null) select(null); else setSide(false); }
 });
 
