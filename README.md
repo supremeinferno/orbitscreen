@@ -1,12 +1,33 @@
 # orbitscreen
 
+**Every satellite in orbit, moving live, and the ones about to pass each other.**
+
+### 👉 [Open the live tracker](https://supremeinferno.github.io/orbitscreen/)
+
+[![The live tracker: about 21,000 objects around a 3D Earth with NASA's day and night images, the ISS selected, and the next day's closest approaches](docs/img/tracker-live.jpg)](https://supremeinferno.github.io/orbitscreen/)
+
+## In plain words
+
+- **What you see.** About 21,000 objects in orbit (some 16,800 working satellites, plus old rocket parts and debris), each one moving in real time around a 3D Earth or across a flat map. Every position is worked out in your own browser.
+- **Close approaches.** Space is crowded. Every few hours this project checks every pair of objects over the next 24 hours and lists the ones that pass closest, for example two satellites 20 metres apart at 9 km/s. Click one and the tracker takes you there, a minute before it happens.
+- **Why it matters.** Satellite operators use this kind of check to decide whether to move a satellite out of the way.
+- **How good it is.** It checks the whole catalog for the next 7 days in about 5 minutes on one laptop, and finds every one of the close approaches that CelesTrak's reference service (SOCRATES) finds on the same data.
+- **What it is not.** A collision predictor. Public orbit data is accurate to about a kilometre, so a close approach here means "worth a closer look with better data", not "will collide".
+- **Its sister project.** Five small satellites in this sky also report their battery: select UWE-4, CatSat, SNUGLITE, Sharjahsat-1 or GRBBeta to see it, or open [satnogs-pipeline's page](https://supremeinferno.github.io/satnogs-pipeline/).
+
+| Link | What it is |
+|---|---|
+| [Live tracker](https://supremeinferno.github.io/orbitscreen/) | every object in orbit, and the closest approaches of the next 24 hours |
+| [satnogs-pipeline](https://supremeinferno.github.io/satnogs-pipeline/) | the sister project: five satellites' batteries, checked against sunlight and the Earth's shadow |
+| [Results](#results) · [How it works](#how-it-works) · [Running it](#running-it) · [Limitations](#limitations) | for developers |
+
+## For developers
+
 **How fast can one laptop screen the whole satellite catalog for close approaches, and how well does it match CelesTrak SOCRATES?**
 
 `orbitscreen` is a conjunction screener written in Go from scratch, with no orbital-mechanics dependencies. It reads the public satellite catalog, predicts where every object will be over the next 7 days, and finds every pair that comes within a few kilometres of each other. Then it checks its answers against [CelesTrak SOCRATES](https://celestrak.org/SOCRATES/), the public reference service for this job.
 
-It also includes a **live tracker** that draws every object in the catalog moving on a world map. **Try it: [supremeinferno.github.io/orbitscreen](https://supremeinferno.github.io/orbitscreen/)**. It runs the project's own Go SGP4 in your browser, compiled to WebAssembly, and lists the closest approaches of the next 24 hours from the project's screener. Select UWE-4, CatSat, SNUGLITE or Sharjahsat-1 and the panel also shows their battery, from [satnogs-pipeline](https://github.com/supremeinferno/satnogs-pipeline) (see [chapter 6](docs/06-live-tracker.md#battery-status-from-satnogs-pipeline)).
-
-![Live tracker: ~21,000 objects around a 3D Earth, the ISS selected with its orbit, and the next day's closest approaches](docs/img/tracker.jpg)
+The **live tracker** runs the project's own Go SGP4 in your browser, compiled to WebAssembly, and lists the closest approaches of the next 24 hours from the project's screener, leaving out pairs that fly together (docked, or just released from the same rocket). Its globe shows NASA's Blue Marble by day and Black Marble by night. Select UWE-4, CatSat, SNUGLITE, Sharjahsat-1 or GRBBeta and the panel also shows their battery, from [satnogs-pipeline](https://github.com/supremeinferno/satnogs-pipeline) (see [chapter 6](docs/06-live-tracker.md#battery-status-from-satnogs-pipeline)).
 
 > **This is a screening tool, not a collision predictor.** Public orbit data (TLEs) is only accurate to about a kilometre at its epoch, and the error grows by kilometres per day. A "close approach" here means "worth a closer look with better data", not "will collide". See [Limitations](#limitations).
 
