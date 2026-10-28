@@ -26,13 +26,13 @@ func TestClosest(t *testing.T) {
 	deb, sat := obj(3, "FENGYUN 1C DEB", false), obj(4, "ICEYE-X1", true)
 	t0 := time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
 	found := []screen.Conjunction{
-		{A: s1, B: s2, TCA: t0, MissKm: 0.01},                        // same fleet, both active: left out
-		{A: deb, B: sat, TCA: t0.Add(time.Hour), MissKm: 2.5},        // the pair again, further: counted once
-		{A: s1, B: deb, TCA: t0, MissKm: 3.0, RelSpeed: 14.1234},     // third closest pair
-		{A: deb, B: sat, TCA: t0.Add(2 * time.Hour), MissKm: 0.0634}, // closest kept pair
-		{A: s2, B: sat, TCA: t0, MissKm: 1.0},                        // different fleets: kept
+		{A: s1, B: s2, TCA: t0, MissKm: 0.01},                                     // same fleet, both active: left out
+		{A: deb, B: sat, TCA: t0.Add(time.Hour), MissKm: 2.5, RelSpeed: 10},       // the pair again, further: counted once
+		{A: s1, B: deb, TCA: t0, MissKm: 3.0, RelSpeed: 14.1234},                  // third closest pair
+		{A: deb, B: sat, TCA: t0.Add(2 * time.Hour), MissKm: 0.0634, RelSpeed: 9}, // closest kept pair
+		{A: s2, B: sat, TCA: t0, MissKm: 1.0, RelSpeed: 12},                       // different fleets: kept
 	}
-	got, total := closest(found, 2)
+	got, total, _ := closest(found, 2)
 	if total != 3 {
 		t.Errorf("total = %d pairs, want 3", total)
 	}
@@ -44,5 +44,21 @@ func TestClosest(t *testing.T) {
 	}
 	if found[0].MissKm != 0.01 {
 		t.Error("closest reordered its input")
+	}
+}
+
+// Two objects released from one rocket stay close at almost no relative
+// speed: that is not a pass, and it must not top the list.
+func TestClosestLeavesOutPairsFlyingTogether(t *testing.T) {
+	a, b, c := &catalog.Object{ID: 10, Name: "W-SERIES 8", Primary: true}, &catalog.Object{ID: 11, Name: "MIKROGLOB-3", Primary: true}, &catalog.Object{ID: 12, Name: "COSMOS 2251 DEB"}
+	t0 := time.Date(2026, 10, 28, 15, 0, 0, 0, time.UTC)
+	found := []screen.Conjunction{
+		{A: a, B: b, TCA: t0, MissKm: 0.081, RelSpeed: 0},  // together, closest of all
+		{A: a, B: b, TCA: t0.Add(time.Hour), MissKm: 0.09}, // together again: one pair
+		{A: a, B: c, TCA: t0, MissKm: 0.5, RelSpeed: 14.8}, // a real pass
+	}
+	got, total, together := closest(found, 5)
+	if len(got) != 1 || got[0].B.ID != 12 || total != 1 || together != 1 {
+		t.Fatalf("got %+v, %d pairs, %d together; want only the pass with 12, 1 pair, 1 together", got, total, together)
 	}
 }

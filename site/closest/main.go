@@ -1,7 +1,9 @@
 // Command closest screens the catalog for the public site: the next 24
 // hours, SOCRATES-style (pairs involving an active satellite, but not two
 // active satellites of the same fleet, which their operator handles), and
-// writes the closest approaches as JSON for the tracker's list.
+// writes the closest approaches as JSON for the tracker's list. Pairs that
+// fly together (attached, or just released from the same launch) are left
+// out too: they stay close all the time instead of passing each other.
 //
 //	go run ./site/closest -out _site/closest.json
 package main
@@ -41,7 +43,8 @@ type output struct {
 	Start      time.Time  `json:"start"`
 	Hours      float64    `json:"hours"`
 	Objects    int        `json:"objects"`
-	Total      int        `json:"total"` // after the fleet filter, one per pair
+	Total      int        `json:"total"`    // after the fleet and together filters, one per pair
+	Together   int        `json:"together"` // pairs left out because they fly together
 	Approaches []approach `json:"approaches"`
 }
 
@@ -55,16 +58,27 @@ func fleet(name string) string {
 	return name
 }
 
+// togetherKmS is the relative speed below which two objects count as flying
+// together. A real pass in low orbit is kilometres a second; two satellites
+// just released from one rocket, or one docked to another, differ by
+// centimetres or metres a second.
+const togetherKmS = 0.05
+
 // closest returns the top closest approaches, one per pair (slow pairs pass
-// many times), leaving out pairs of active satellites of the same fleet,
-// and how many pairs are left in all.
-func closest(found []screen.Conjunction, top int) ([]approach, int) {
+// many times), leaving out pairs of active satellites of the same fleet and
+// pairs flying together; how many pairs are left in all; and how many were
+// left out for flying together.
+func closest(found []screen.Conjunction, top int) ([]approach, int, int) {
 	found = slices.Clone(found)
 	sort.SliceStable(found, func(i, j int) bool { return found[i].MissKm < found[j].MissKm })
 	var out []approach
-	seen := map[[2]int]bool{}
+	seen, together := map[[2]int]bool{}, map[[2]int]bool{}
 	for _, c := range found {
 		if c.A.Primary && c.B.Primary && fleet(c.A.Name) == fleet(c.B.Name) {
+			continue
+		}
+		if c.RelSpeed < togetherKmS {
+			together[[2]int{c.A.ID, c.B.ID}] = true
 			continue
 		}
 		if k := [2]int{c.A.ID, c.B.ID}; !seen[k] {
@@ -76,7 +90,13 @@ func closest(found []screen.Conjunction, top int) ([]approach, int) {
 			}
 		}
 	}
-	return out, len(seen)
+	n := 0
+	for k := range together {
+		if !seen[k] {
+			n++
+		}
+	}
+	return out, len(seen), n
 }
 
 func main() {
@@ -98,10 +118,10 @@ func main() {
 	log.Printf("%d objects, %d conjunctions in %v", st.Objects, len(found), ss.Elapsed.Round(time.Second))
 
 	res := output{Generated: time.Now().UTC(), Start: start, Hours: *hours, Objects: st.Objects}
-	res.Approaches, res.Total = closest(found, *top)
+	res.Approaches, res.Total, res.Together = closest(found, *top)
 	b, _ := json.Marshal(res)
 	if err := os.WriteFile(*out, b, 0o644); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("wrote %s: %d pairs, kept the closest %d", *out, res.Total, len(res.Approaches))
+	log.Printf("wrote %s: %d pairs, kept the closest %d; %d pairs flying together left out", *out, res.Total, len(res.Approaches), res.Together)
 }

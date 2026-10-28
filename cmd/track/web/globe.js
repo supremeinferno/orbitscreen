@@ -5,6 +5,7 @@
 // still and the Sun's light moves. One unit is one Earth radius.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { earthMaterial } from './earth.js';
 
 const R = 6371; // km
 
@@ -27,9 +28,10 @@ export function createGlobe(canvas) {
   const controls = new OrbitControls(camera, canvas);
   Object.assign(controls, { enableDamping: true, enablePan: false, minDistance: 1.15, maxDistance: 25, rotateSpeed: 0.5, zoomSpeed: 0.8 });
 
-  // Earth: the 2D map's own canvas as a texture, lit by the Sun.
-  const earthMat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 6 });
-  const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), earthMat);
+  // Earth: NASA's day and night images, split where the Sun is (earth.js,
+  // shared with satnogs-pipeline's page). The 2D map keeps its drawn coastlines.
+  const sunDir = new THREE.Vector3(1, 0, 0);
+  const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), earthMaterial(sunDir, { nightGlow: 1.8 }));
   scene.add(earth);
   scene.add(new THREE.AmbientLight(0xffffff, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 2.6);
@@ -151,13 +153,8 @@ export function createGlobe(canvas) {
 
   return {
     // The map texture: an equirectangular canvas (north up, −180° left).
-    setTexture(c) {
-      const tex = new THREE.CanvasTexture(c);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      earthMat.map?.dispose();
-      earthMat.map = tex; earthMat.needsUpdate = true;
-    },
+    // (kept for app.js; the globe now uses NASA's images instead)
+    setTexture() {},
     // pos: Float32Array of lat, lon, alt; color(i): [r, g, b] in 0–1 or null to hide.
     setPoints(pos, n, color) {
       if (xyz.length !== 3 * n) {
@@ -194,7 +191,7 @@ export function createGlobe(canvas) {
       future.geometry.setFromPoints(pts.slice(now));
       past.visible = future.visible = sel !== null;
     },
-    setSun(lat, lon) { toVec(lat, lon, 0, sun.position).multiplyScalar(10); },
+    setSun(lat, lon) { toVec(lat, lon, 0, sun.position).multiplyScalar(10); toVec(lat, lon, 0, sunDir).normalize(); },
     // Turn the camera to look down on a point, from far enough out to see
     // it. High orbits are seen from 25° above, so a ring like the
     // geostationary belt shows as an ellipse rather than edge-on.

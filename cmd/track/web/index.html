@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>orbitscreen · live satellite tracker</title>
 <meta name="description" content="Every object in the public satellite catalog in 3D, and the next day's closest approaches, computed in your browser by a Go SGP4 compiled to WebAssembly.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#03070d">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://supremeinferno.github.io/orbitscreen/">
+<meta property="og:title" content="orbitscreen · every satellite, live">
+<meta property="og:description" content="Every object in orbit moving in 3D, and the closest approaches between them in the next 24 hours, screened by an SGP4 written from scratch in Go.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://supremeinferno.github.io/orbitscreen/">
+<meta property="og:image" content="https://supremeinferno.github.io/orbitscreen/img/og.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -17,6 +29,7 @@
 </script>
 </head>
 <body>
+<noscript><p style="position:relative;z-index:9;margin:80px auto;max-width:36rem;padding:14px 18px;border-radius:12px;background:#2a1a05;color:#ffd8a0;font:15px/1.5 system-ui,sans-serif">The tracker computes every position in your browser and needs JavaScript.</p></noscript>
 <canvas id="map" aria-label="World map showing every tracked object in orbit"></canvas>
 <canvas id="globe" hidden aria-label="3D globe showing every tracked object in orbit at its altitude"></canvas>
 
@@ -86,6 +99,7 @@
   </ul>
   <p>Its sister project, <a href="https://supremeinferno.github.io/satnogs-pipeline/">satnogs-pipeline</a>, listens to five small satellites and checks their batteries against sunlight and the Earth's shadow. Search for UWE-4, CatSat, SNUGLITE, Sharjahsat-1 or GRBBeta to see theirs here.</p>
   <p class="note">Open <em>Close approaches</em> for the next 24 hours, click any dot, or search by name. Drag to turn the globe; scroll to zoom out to the geostationary ring. Keys: <kbd>/</kbd> search, <kbd>Space</kbd> pause, <kbd>Esc</kbd> clear.</p>
+  <p class="note">Earth images on the globe: <a href="https://earthobservatory.nasa.gov/">NASA Earth Observatory</a> (Blue Marble and Black Marble).</p>
   <p class="note">These are screening results from public orbit data, accurate to about a kilometre: worth a closer look, not collision predictions.</p>
   <div class="actions">
     <a href="https://github.com/supremeinferno/orbitscreen">Code &amp; write-up on GitHub</a>

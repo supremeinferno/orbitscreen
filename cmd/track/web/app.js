@@ -475,13 +475,20 @@ function syncFilters() {
 // ---- close approaches (public site only) ----
 function renderApproaches() {
   if (!approaches) return;
-  const ago = (Date.now() - Date.parse(approaches.generated)) / 3600000;
+  const now = Date.now(), ago = (now - Date.parse(approaches.generated)) / 3600000;
+  // The list was screened up to hours ago: show only what is still to come,
+  // and leave out pairs flying together (an older list may still hold them).
+  const ahead = approaches.approaches.map((c, k) => [c, k]).filter(([c]) => Date.parse(c.tca) > now - 60000 && c.kms >= 0.05);
+  const left = Math.max(0, (Date.parse(approaches.start) + approaches.hours * 3600000 - now) / 3600000);
+  const together = approaches.together ? ` ${fmt(approaches.together)} pairs that fly together (one docked to the other, or just released from the same rocket) are left out.` : '';
   $('approaches').innerHTML = `
-    <p class="lede">The closest of ${fmt(approaches.total)} pairs passing within 5 km in the next ${fmt(approaches.hours)} h, involving an active satellite. Screened ${ago < 1 ? 'under an hour' : fmt(ago) + ' h'} ago by this project. Click one to watch it.</p>
-    <ol>${approaches.approaches.map((c, k) => `<li><button data-k="${k}" class="${pair && pair.c === c ? 'on' : ''}">
+    <p class="lede">The closest of ${fmt(approaches.total)} pairs passing within 5 km, involving an active satellite: the next ${fmt(left)} h of a screening this project ran ${ago < 1 ? 'under an hour' : fmt(ago) + ' h'} ago.${together} Click one to watch it.</p>
+    ${ahead.length ? `<ol>${ahead.map(([c, k]) => `<li><button data-k="${k}" class="${pair && pair.c === c ? 'on' : ''}">
       <span class="names">${esc(c.a.name)} × ${esc(c.b.name)}</span><span class="km">${fmt(c.km * 1000)} m</span>
-      <span class="when">${new Date(c.tca).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${relSpeed(c.kms)}</span></button></li>`).join('')}</ol>`;
+      <span class="when">${new Date(c.tca).toISOString().slice(5, 16).replace('T', ' ')} UTC · ${relSpeed(c.kms)}</span></button></li>`).join('')}</ol>`
+      : '<p class="lede">All of the closest approaches from the last screening have passed; the next screening will list new ones.</p>'}`;
 }
+setInterval(renderApproaches, 60000); // passed approaches drop off the list
 $('approaches').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-k]'); if (!b) return;
   const c = approaches.approaches[Number(b.dataset.k)];
