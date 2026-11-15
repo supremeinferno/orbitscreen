@@ -63,6 +63,9 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
 .playback { display: flex; align-items: center; gap: 6px; }
 .right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
 .tools { display: flex; align-items: center; gap: 6px; }
+.star { color: var(--text); border-color: var(--border); text-decoration: none; }
+.star:hover { color: #ffd166; }
+.star:hover svg { fill: currentColor; }
 
 .search { position: relative; flex: 0 1 260px; min-width: 150px; }
 .search .glass { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
@@ -183,6 +186,8 @@ dialog form { margin: 0 0 0 auto; }
   .open-side { top: auto; bottom: var(--gap); }
   body:has(#panel:not([hidden])) .side, body:has(#panel:not([hidden])) .open-side { display: none; }
   .status { display: none; }
+  .star { width: 30px; padding: 0; }
+  .star span { display: none; }
   dialog form { margin-left: 0; }
 }
 @media (max-width: 380px) {
